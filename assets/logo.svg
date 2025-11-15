@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background Circle -->
+  <circle cx="256" cy="256" r="256" fill="#1E88E5"/>
+  
+  <!-- Inner Circle -->
+  <circle cx="256" cy="256" r="220" fill="#FFFFFF" opacity="0.1"/>
+  
+  <!-- Logo Design: "R" for Ryse -->
+  <!-- Top curve of R -->
+  <path d="M 180 150 Q 180 150 230 150 Q 280 150 280 200 Q 280 230 260 240" 
+        stroke="#FFFFFF" stroke-width="30" fill="none" stroke-linecap="round"/>
+  
+  <!-- Vertical line of R -->
+  <line x1="180" y1="150" x2="180" y2="350" stroke="#FFFFFF" stroke-width="30" stroke-linecap="round"/>
+  
+  <!-- Diagonal leg of R -->
+  <line x1="260" y1="240" x2="320" y2="350" stroke="#FFFFFF" stroke-width="30" stroke-linecap="round"/>
+  
+  <!-- Accent: Rising arrow (symbolizing growth) -->
+  <g transform="translate(340, 280)">
+    <polyline points="0,40 0,0 40,0" stroke="#42A5F5" stroke-width="20" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  
+  <!-- App Name -->
+  <text x="256" y="420" font-family="Arial, sans-serif" font-size="60" font-weight="bold" 
+        fill="#FFFFFF" text-anchor="middle">RYSE TWO</text>
+</svg>

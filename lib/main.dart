@@ -1,0 +1,31 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'providers/expense_provider.dart';
+import 'theme/app_theme.dart';
+import 'screens/home/home_screen.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ExpenseProvider()),
+      ],
+      child: MaterialApp(
+        title: 'Ryse Two - Expense Tracker',
+        theme: AppTheme.lightTheme,
+        debugShowCheckedModeBanner: false,
+        home: const HomeScreen(),
+        routes: {
+          '/home': (context) => const HomeScreen(),
+        },
+      ),
+    );
+  }
+}
