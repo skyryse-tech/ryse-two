@@ -261,9 +261,10 @@ class ExpenseProvider extends ChangeNotifier {
     try {
       _companyFunds = await _databaseHelper.getCompanyFunds();
       _companyFundBalance = await _databaseHelper.getCompanyFundBalance();
+      print('✅ Loaded ${_companyFunds.length} company funds');
       notifyListeners();
     } catch (e) {
-      // Error loading company funds
+      print('❌ Error loading company funds: $e');
     }
   }
 
@@ -274,11 +275,14 @@ class ExpenseProvider extends ChangeNotifier {
         fund.id = id;
         _companyFunds.insert(0, fund);
         _companyFundBalance = await _databaseHelper.getCompanyFundBalance();
+        print('💰 Updated company fund balance: ₹$_companyFundBalance');
         notifyListeners();
         return true;
       }
+      print('❌ Failed to insert company fund - empty ID returned');
       return false;
     } catch (e) {
+      print('❌ Error adding company fund: $e');
       return false;
     }
   }

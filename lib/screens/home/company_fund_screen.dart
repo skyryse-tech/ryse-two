@@ -5,13 +5,30 @@ import '../../providers/expense_provider.dart';
 import '../../theme/app_theme.dart';
 import 'add_company_fund_dialog.dart';
 
-class CompanyFundScreen extends StatelessWidget {
+class CompanyFundScreen extends StatefulWidget {
   const CompanyFundScreen({super.key});
+
+  @override
+  State<CompanyFundScreen> createState() => _CompanyFundScreenState();
+}
+
+class _CompanyFundScreenState extends State<CompanyFundScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Reload company funds when screen opens
+    Future.microtask(() {
+      final provider = Provider.of<ExpenseProvider>(context, listen: false);
+      print('🔄 Reloading company funds on screen open...');
+      provider.loadCompanyFunds();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<ExpenseProvider>(
       builder: (context, provider, _) {
+        print('📊 Building CompanyFundScreen with ${provider.companyFunds.length} funds');
         return Scaffold(
           appBar: AppBar(
             title: const Text('Company Fund'),
@@ -102,6 +119,7 @@ class CompanyFundScreen extends StatelessWidget {
   }
 
   Widget _buildFundCard(BuildContext context, dynamic fund, bool isAdd, Color color) {
+    print('📝 Rendering fund card: ${fund.description} - Type: ${fund.type} - Amount: ${fund.amount}');
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(

@@ -26,14 +26,22 @@ class CompanyFund {
   }
 
   factory CompanyFund.fromMap(Map<String, dynamic> map) {
-    return CompanyFund(
-      id: map['id'],
-      amount: (map['amount'] is double ? map['amount'] : (map['amount'] as num).toDouble()),
-      description: map['description'],
-      type: map['type'],
-      date: map['date'] is String ? DateTime.parse(map['date']) : map['date'] as DateTime,
-      createdAt: map['createdAt'] is String ? DateTime.parse(map['createdAt']) : map['createdAt'] as DateTime,
-    );
+    try {
+      final fund = CompanyFund(
+        id: map['id'],
+        amount: (map['amount'] is double ? map['amount'] : (map['amount'] as num).toDouble()),
+        description: map['description'] ?? 'Unknown',
+        type: map['type'] ?? 'add',
+        date: map['date'] is String ? DateTime.parse(map['date']) : (map['date'] as DateTime? ?? DateTime.now()),
+        createdAt: map['createdAt'] is String ? DateTime.parse(map['createdAt']) : (map['createdAt'] as DateTime? ?? DateTime.now()),
+      );
+      print('✅ Parsed CompanyFund: ${fund.description} (${fund.type}) - ₹${fund.amount}');
+      return fund;
+    } catch (e) {
+      print('❌ Error parsing CompanyFund from map: $e');
+      print('   Map data: $map');
+      rethrow;
+    }
   }
 
   CompanyFund copyWith({

@@ -288,9 +288,13 @@ class MongoDBHelper {
       final collection = await _getCollection(_companyFundsCollectionName);
       final map = fund.toMap();
       map.remove('id');
+      print('📄 Inserting company fund: ${map['description']} - ₹${map['amount']}');
       final result = await collection.insertOne(map);
-      return (result.id as ObjectId).toHexString();
+      final hexId = (result.id as ObjectId).toHexString();
+      print('✅ Inserted with ID: $hexId');
+      return hexId;
     } catch (e) {
+      print('❌ Error inserting company fund: $e');
       return '';
     }
   }
@@ -299,15 +303,30 @@ class MongoDBHelper {
     try {
       final collection = await _getCollection(_companyFundsCollectionName);
       final result = await collection.find().toList();
+      print('📊 Found ${result.length} company fund records in DB');
+      
+      // Sort by date (convert string dates properly)
       result.sort((a, b) {
-        final dateA = (a['date'] as DateTime?) ?? DateTime(1900);
-        final dateB = (b['date'] as DateTime?) ?? DateTime(1900);
-        return dateB.compareTo(dateA);
+        final dateAValue = a['date'];
+        final dateBValue = b['date'];
+        
+        final dateA = dateAValue is DateTime 
+            ? dateAValue 
+            : (dateAValue is String ? DateTime.parse(dateAValue) : DateTime(1900));
+        final dateB = dateBValue is DateTime 
+            ? dateBValue 
+            : (dateBValue is String ? DateTime.parse(dateBValue) : DateTime(1900));
+            
+        return dateB.compareTo(dateA); // Newest first
       });
-      return result
+      
+      final funds = result
           .map((map) => CompanyFund.fromMap({...map, 'id': (map['_id'] as ObjectId).toHexString()}))
           .toList();
+      print('✅ Converted to ${funds.length} CompanyFund objects');
+      return funds;
     } catch (e) {
+      print('❌ Error fetching company funds: $e');
       return [];
     }
   }
