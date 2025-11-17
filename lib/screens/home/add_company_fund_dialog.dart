@@ -88,7 +88,8 @@ class _AddCompanyFundDialogState extends State<AddCompanyFundDialog> {
                     decoration: InputDecoration(
                       labelText: 'Amount',
                       hintText: '1000.00',
-                      prefixIcon: const Icon(Icons.attach_money),
+                      prefixText: '₹ ',
+                      prefixStyle: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
                   const SizedBox(height: 16),

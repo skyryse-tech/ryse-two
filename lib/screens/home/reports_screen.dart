@@ -351,6 +351,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
     double paid,
     double balance,
   ) {
+    // Calculate progress based on total personal expenses
+    final totalPersonalExpenses = context.read<ExpenseProvider>()
+        .expenses
+        .where((e) => !e.isCompanyFund)
+        .fold<double>(0, (sum, e) => sum + e.amount);
+    
+    final progressValue = totalPersonalExpenses > 0 ? paid / totalPersonalExpenses : 0;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -380,7 +388,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   ),
                   const SizedBox(height: 4),
                   LinearProgressIndicator(
-                    value: 0.6,
+                    value: (progressValue as double).clamp(0.0, 1.0) as double?,
                     backgroundColor: AppTheme.background,
                     minHeight: 4,
                   ),

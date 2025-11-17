@@ -15,6 +15,7 @@ class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
   late AnimationController _mainController;
   late AnimationController _barsController;
+  late AnimationController _orbitalController;
   late Animation<double> _logoScale;
   late Animation<double> _logoOpacity;
   late Animation<Offset> _textSlide;
@@ -37,6 +38,11 @@ class _SplashScreenState extends State<SplashScreen>
 
     _barsController = AnimationController(
       duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    )..repeat();
+
+    _orbitalController = AnimationController(
+      duration: const Duration(milliseconds: 3000),
       vsync: this,
     )..repeat();
 
@@ -89,6 +95,7 @@ class _SplashScreenState extends State<SplashScreen>
   void dispose() {
     _mainController.dispose();
     _barsController.dispose();
+    _orbitalController.dispose();
     super.dispose();
   }
 
@@ -99,59 +106,60 @@ class _SplashScreenState extends State<SplashScreen>
       body: Column(
         children: [
           // Top spacer for margin
-          const SizedBox(height: 80),
+          const SizedBox(height: 40),
           
           // Logo and text area
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Business-focused Ryse Logo with unique animation
-                  _buildRyseLogo(),
-                  const SizedBox(height: 50),
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Business-focused Ryse Logo with unique animation
+                _buildRyseLogo(),
+                const SizedBox(height: 30),
 
-                  // App branding
-                  SlideTransition(
-                    position: _textSlide,
-                    child: Column(
-                      children: [
-                        Text(
-                          'RYSE TWO',
-                          style: GoogleFonts.poppins(
-                            fontSize: 36,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: 2,
-                          ),
+                // App branding
+                SlideTransition(
+                  position: _textSlide,
+                  child: Column(
+                    children: [
+                      Text(
+                        'RYSE TWO',
+                        style: GoogleFonts.poppins(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: 2,
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Platform for Founders',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.white.withOpacity(0.8),
-                            letterSpacing: 0.5,
-                          ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Platform for Founders',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white.withOpacity(0.8),
+                          letterSpacing: 0.5,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
 
-          // Connection Status Section
-          if (_isChecking)
-            _buildBusinessLoadingState()
-          else if (_connectionStatus != null)
-            _buildConnectionStatus(),
+          // Connection Status Section - Expanded to push footer down
+          Expanded(
+            child: Center(
+              child: _isChecking
+                  ? _buildBusinessLoadingState()
+                  : _connectionStatus != null
+                      ? _buildConnectionStatus()
+                      : SizedBox.shrink(),
+            ),
+          ),
 
-          const Spacer(),
-
-          // Footer
+          // Footer - Pinned to bottom
           Padding(
             padding: const EdgeInsets.only(bottom: 30),
             child: Column(
@@ -209,20 +217,13 @@ class _SplashScreenState extends State<SplashScreen>
             children: [
               // Background circle animation
               _buildAnimatedBackgroundCircles(),
-              // Center - App Icon
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Image.asset(
-                    'assets/ryse_two.png',
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.contain,
-                  ),
+              // Center - App Icon (Circular)
+              ClipOval(
+                child: Image.asset(
+                  'assets/ryse_two.png',
+                  width: 100,
+                  height: 100,
+                  fit: BoxFit.cover,
                 ),
               ),
             ],
@@ -260,23 +261,28 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Widget _buildBusinessLoadingState() {
-    return Column(
-      children: [
-        // Futuristic data stream visualization
-        SizedBox(
-          width: 140,
-          height: 80,
+    return Padding(
+      padding: const EdgeInsets.only(top: 50),
+      child: Column(
+        children: [
+          // Futuristic data stream visualization
+          SizedBox(
+            width: 140,
+            height: 120,
           child: Stack(
             alignment: Alignment.center,
             children: [
               // Orbital data points
               ...List.generate(3, (orbitIndex) {
                 return AnimatedBuilder(
-                  animation: _barsController,
+                  animation: _orbitalController,
                   builder: (context, child) {
-                    final angle = (_barsController.value * 2 * pi) +
+                    final angle = (_orbitalController.value * 2 * pi) +
                         (orbitIndex * 2.094); // 2.094 = 120 degrees
-                    final radius = 25 + (orbitIndex * 15).toDouble();
+                    // Add random variation to radius (±5 pixels within bounds)
+                    final baseRadius = 25 + (orbitIndex * 11.5).toDouble();
+                    final randomVariation = sin(_orbitalController.value * pi * 2.5 + orbitIndex) * 5;
+                    final radius = baseRadius + randomVariation;
                     final x = radius * cos(angle);
                     final y = radius * sin(angle);
 
@@ -325,10 +331,10 @@ class _SplashScreenState extends State<SplashScreen>
             ],
           ),
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 80),
         // Data sync progress bars
         SizedBox(
-          width: 120,
+          width: 180,
           child: Column(
             children: List.generate(3, (index) {
               final labels = ['Connecting', 'Syncing', 'Verifying'];
@@ -340,8 +346,8 @@ class _SplashScreenState extends State<SplashScreen>
                     Text(
                       labels[index],
                       style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w400,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
                         color: Colors.white.withOpacity(0.7),
                       ),
                     ),
@@ -356,7 +362,7 @@ class _SplashScreenState extends State<SplashScreen>
                           borderRadius: BorderRadius.circular(2),
                           child: LinearProgressIndicator(
                             value: value,
-                            minHeight: 3,
+                            minHeight: 5,
                             backgroundColor:
                                 Colors.white.withOpacity(0.1),
                             valueColor: AlwaysStoppedAnimation<Color>(
@@ -376,27 +382,28 @@ class _SplashScreenState extends State<SplashScreen>
             }),
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 30),
         Text(
           'Initializing Quantum Link',
           style: GoogleFonts.poppins(
-            fontSize: 14,
+            fontSize: 18,
             fontWeight: FontWeight.w600,
             color: Colors.white,
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 10),
         Text(
           'Establishing secure connection...',
           style: GoogleFonts.poppins(
-            fontSize: 11,
+            fontSize: 14,
             fontWeight: FontWeight.w400,
             color: Colors.white.withOpacity(0.6),
             letterSpacing: 0.3,
           ),
         ),
       ],
+      ),
     );
   }
 
@@ -410,127 +417,142 @@ class _SplashScreenState extends State<SplashScreen>
           // Futuristic connection indicator
           SizedBox(
             width: 120,
-            height: 120,
+            height: 150,
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Pulsing background rings
-                if (isConnected)
-                  ...List.generate(3, (index) {
-                    return AnimatedBuilder(
-                      animation: _barsController,
-                      builder: (context, child) {
-                        final scale =
-                            1.0 + ((_barsController.value + index * 0.15) % 1.0) * 0.8;
-                        final opacity = (1.0 -
-                                ((_barsController.value + index * 0.15) % 1.0)) *
-                            0.6;
-                        return Transform.scale(
-                          scale: scale,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppTheme.secondary
-                                    .withOpacity(opacity),
-                                width: 2,
+                // Pulsing background rings - Moved down with padding
+                Padding(
+                  padding: EdgeInsets.only(top: isConnected ? 20 : 0),
+                  child: SizedBox(
+                    width: 120,
+                    height: 150,
+                    child: isConnected
+                        ? Stack(
+                            alignment: Alignment.center,
+                            children: List.generate(3, (index) {
+                              return AnimatedBuilder(
+                                animation: _barsController,
+                                builder: (context, child) {
+                                  final scale = 1.0 +
+                                      ((_barsController.value + index * 0.15) % 1.0) *
+                                          0.8;
+                                  final opacity = (1.0 -
+                                          ((_barsController.value + index * 0.15) %
+                                              1.0)) *
+                                      0.6;
+                                  return Transform.scale(
+                                    scale: scale,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: AppTheme.secondary
+                                              .withOpacity(opacity),
+                                          width: 2,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            }),
+                          )
+                        : Center(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.orange.withOpacity(0.5),
+                                  width: 2,
+                                ),
                               ),
                             ),
                           ),
-                        );
-                      },
-                    );
-                  })
-                else
-                  // Error visualization
-                  Container(
+                  ),
+                ),
+                // Inner circle with status - Moved down with padding
+                Padding(
+                  padding: EdgeInsets.only(top: isConnected ? 20 : 0),
+                  child: Container(
+                    width: 90,
+                    height: 90,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: isConnected
+                            ? [
+                                AppTheme.secondary.withOpacity(0.3),
+                                AppTheme.primary.withOpacity(0.2),
+                              ]
+                            : [
+                                Colors.orange.withOpacity(0.15),
+                                Colors.red.withOpacity(0.1),
+                              ],
+                      ),
                       border: Border.all(
-                        color: Colors.orange.withOpacity(0.5),
+                        color: isConnected
+                            ? AppTheme.secondary
+                            : Colors.orange,
                         width: 2,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isConnected
+                              ? AppTheme.secondary.withOpacity(0.4)
+                              : Colors.orange.withOpacity(0.2),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                      ],
                     ),
-                  ),
-                // Inner circle with status
-                Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: isConnected
-                          ? [
-                              AppTheme.secondary.withOpacity(0.3),
-                              AppTheme.primary.withOpacity(0.2),
-                            ]
-                          : [
-                              Colors.orange.withOpacity(0.15),
-                              Colors.red.withOpacity(0.1),
-                            ],
-                    ),
-                    border: Border.all(
-                      color: isConnected
-                          ? AppTheme.secondary
-                          : Colors.orange,
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isConnected
-                            ? AppTheme.secondary.withOpacity(0.4)
-                            : Colors.orange.withOpacity(0.2),
-                        blurRadius: 20,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      if (isConnected)
-                        // Success checkmark
-                        ScaleTransition(
-                          scale: Tween<double>(begin: 0.0, end: 1.0).animate(
-                            CurvedAnimation(
-                              parent: _mainController,
-                              curve: const Interval(0.6, 1.0,
-                                  curve: Curves.elasticOut),
-                            ),
-                          ),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppTheme.secondary,
-                                  AppTheme.accent,
-                                ],
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        if (isConnected)
+                          // Success checkmark
+                          ScaleTransition(
+                            scale: Tween<double>(begin: 0.0, end: 1.0).animate(
+                              CurvedAnimation(
+                                parent: _mainController,
+                                curve: const Interval(0.6, 1.0,
+                                    curve: Curves.elasticOut),
                               ),
                             ),
-                            child: Icon(
-                              Icons.check_rounded,
-                              size: 50,
-                              color: Colors.white,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppTheme.secondary,
+                                    AppTheme.accent,
+                                  ],
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.check_rounded,
+                                size: 55,
+                                color: Colors.white,
+                              ),
                             ),
+                          )
+                        else
+                          // Error icon
+                          Icon(
+                            Icons.warning_rounded,
+                            size: 45,
+                            color: Colors.orange,
                           ),
-                        )
-                      else
-                        // Error icon
-                        Icon(
-                          Icons.warning_rounded,
-                          size: 45,
-                          color: Colors.orange,
-                        ),
                     ],
+                  ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 28),
+          SizedBox(height: isConnected ? 80 : 40),
           Text(
             isConnected ? 'System Online' : 'Connection Failed',
             style: GoogleFonts.poppins(
@@ -540,7 +562,7 @@ class _SplashScreenState extends State<SplashScreen>
               letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: isConnected ? 6 : 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
@@ -567,39 +589,8 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
           ),
-          if (!isConnected && _connectionStatus?.fullError != null) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.orange.withOpacity(0.3),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.orange.withOpacity(0.1),
-                    blurRadius: 8,
-                  ),
-                ],
-              ),
-              child: Text(
-                _connectionStatus!.fullError!,
-                textAlign: TextAlign.center,
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white.withOpacity(0.8),
-                ),
-              ),
-            ),
-          ],
           if (!isConnected) ...[
-            const SizedBox(height: 28),
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

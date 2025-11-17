@@ -75,6 +75,16 @@ class _SettlementsScreenState extends State<SettlementsScreen>
             elevation: 0,
             bottom: TabBar(
               controller: _tabController,
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.white,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                color: Colors.white70,
+              ),
               tabs: [
                 Tab(
                   text: 'Pending (${debts.length})',

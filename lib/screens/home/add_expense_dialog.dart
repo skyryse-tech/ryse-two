@@ -88,12 +88,12 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                   // Amount
                   TextField(
                     controller: _amountController,
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: InputDecoration(
                       labelText: 'Amount',
                       hintText: '0.00',
-                      prefixIcon: const Icon(Icons.attach_money),
                       prefixText: '₹ ',
+                      prefixStyle: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
                   const SizedBox(height: 16),
