@@ -1,9 +1,9 @@
 class Expense {
-  int? id;
+  dynamic id; // Can be int (SQLite) or String (MongoDB)
   String description;
   double amount;
-  int paidById;
-  List<int> contributorIds;
+  dynamic paidById; // Can be int or String
+  List<dynamic> contributorIds; // Can be ints or Strings
   String category;
   DateTime date;
   String? notes;
@@ -29,17 +29,16 @@ class Expense {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
       'description': description,
       'amount': amount,
       'paidById': paidById,
-      'contributorIds': contributorIds.join(','),
+      'contributorIds': contributorIds,
       'category': category,
       'date': date.toIso8601String(),
       'notes': notes,
       'receipt': receipt,
       'createdAt': createdAt.toIso8601String(),
-      'isCompanyFund': isCompanyFund ? 1 : 0,
+      'isCompanyFund': isCompanyFund,
       'companyName': companyName,
     };
   }
@@ -48,19 +47,15 @@ class Expense {
     return Expense(
       id: map['id'],
       description: map['description'],
-      amount: map['amount'].toDouble(),
+      amount: (map['amount'] is double ? map['amount'] : (map['amount'] as num).toDouble()),
       paidById: map['paidById'],
-      contributorIds: (map['contributorIds'] as String?)
-              ?.split(',')
-              .map((id) => int.parse(id))
-              .toList() ??
-          [],
+      contributorIds: (map['contributorIds'] as List?)?.cast<dynamic>() ?? [],
       category: map['category'],
-      date: DateTime.parse(map['date']),
+      date: map['date'] is String ? DateTime.parse(map['date']) : map['date'] as DateTime,
       notes: map['notes'],
       receipt: map['receipt'],
-      createdAt: DateTime.parse(map['createdAt']),
-      isCompanyFund: map['isCompanyFund'] == 1,
+      createdAt: map['createdAt'] is String ? DateTime.parse(map['createdAt']) : map['createdAt'] as DateTime,
+      isCompanyFund: map['isCompanyFund'] == true || map['isCompanyFund'] == 1,
       companyName: map['companyName'] ?? '',
     );
   }

@@ -3,10 +3,10 @@ import '../models/cofounder.dart';
 import '../models/expense.dart';
 import '../models/settlement.dart';
 import '../models/company_fund.dart';
-import '../database/database_helper.dart';
+import '../database/mongodb_helper.dart';
 
 class ExpenseProvider extends ChangeNotifier {
-  final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+  final MongoDBHelper _databaseHelper = MongoDBHelper.instance;
 
   List<CoFounder> _coFounders = [];
   List<Expense> _expenses = [];
@@ -36,7 +36,7 @@ class ExpenseProvider extends ChangeNotifier {
 
   Future<bool> addCoFounder(CoFounder coFounder) async {
     try {
-      int id = await _databaseHelper.insertCoFounder(coFounder);
+      String id = await _databaseHelper.insertCoFounder(coFounder);
       coFounder.id = id;
       _coFounders.add(coFounder);
       notifyListeners();
@@ -61,9 +61,9 @@ class ExpenseProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> deleteCoFounder(int id) async {
+  Future<bool> deleteCoFounder(dynamic id) async {
     try {
-      await _databaseHelper.deleteCoFounder(id);
+      await _databaseHelper.deleteCoFounder(id.toString());
       _coFounders.removeWhere((cf) => cf.id == id);
       notifyListeners();
       return true;
@@ -72,7 +72,7 @@ class ExpenseProvider extends ChangeNotifier {
     }
   }
 
-  CoFounder? getCoFounderById(int id) {
+  CoFounder? getCoFounderById(dynamic id) {
     try {
       return _coFounders.firstWhere((cf) => cf.id == id);
     } catch (e) {
@@ -88,15 +88,25 @@ class ExpenseProvider extends ChangeNotifier {
 
   Future<bool> addExpense(Expense expense) async {
     try {
-      int id = await _databaseHelper.insertExpense(expense);
+      String id = await _databaseHelper.insertExpense(expense);
       expense.id = id;
       _expenses.add(expense);
       notifyListeners();
       await calculateSettlements();
+      
+      // If company fund was used, deduct from company fund balance
+      if (expense.isCompanyFund) {
+        await _loadCompanyFundBalance();
+      }
       return true;
     } catch (e) {
       return false;
     }
+  }
+
+  Future<void> _loadCompanyFundBalance() async {
+    _companyFundBalance = await _databaseHelper.getCompanyFundBalance();
+    notifyListeners();
   }
 
   Future<bool> updateExpense(Expense expense) async {
@@ -114,9 +124,9 @@ class ExpenseProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> deleteExpense(int id) async {
+  Future<bool> deleteExpense(dynamic id) async {
     try {
-      await _databaseHelper.deleteExpense(id);
+      await _databaseHelper.deleteExpense(id.toString());
       _expenses.removeWhere((e) => e.id == id);
       notifyListeners();
       await calculateSettlements();
@@ -143,56 +153,39 @@ class ExpenseProvider extends ChangeNotifier {
   }
 
   Future<void> calculateSettlements() async {
-    // Calculate balances for each co-founder
-    Map<int, double> balances = {};
+    // This method now just calculates balances in memory
+    // No need to clear or rewrite database
+    notifyListeners();
+  }
 
-    // Initialize balances
+  Map<dynamic, double> getBalances() {
+    Map<dynamic, double> balances = {};
+
+    // Initialize balances for all co-founders
     for (var coFounder in _coFounders) {
-      balances[coFounder.id!] = 0;
+      balances[coFounder.id] = 0;
     }
 
-    // Calculate based on expenses
+    // Add expenses to balances
     for (var expense in _expenses) {
       double perPerson = expense.getContributionPerPerson();
-
-      // Add to payer's balance
       balances[expense.paidById] =
           (balances[expense.paidById] ?? 0) + expense.amount;
 
-      // Subtract from contributors
       for (var contributorId in expense.contributorIds) {
         balances[contributorId] =
             (balances[contributorId] ?? 0) - perPerson;
       }
     }
 
-    // Generate settlements based on who owes whom
-    await _databaseHelper.clearDatabase();
-    for (var coFounder in _coFounders) {
-      await _databaseHelper.insertCoFounder(coFounder);
-    }
-    for (var expense in _expenses) {
-      await _databaseHelper.insertExpense(expense);
-    }
-
-    notifyListeners();
-  }
-
-  Map<int, double> getBalances() {
-    Map<int, double> balances = {};
-
-    for (var coFounder in _coFounders) {
-      balances[coFounder.id!] = 0;
-    }
-
-    for (var expense in _expenses) {
-      double perPerson = expense.getContributionPerPerson();
-      balances[expense.paidById] =
-          (balances[expense.paidById] ?? 0) + expense.amount;
-
-      for (var contributorId in expense.contributorIds) {
-        balances[contributorId] =
-            (balances[contributorId] ?? 0) - perPerson;
+    // Adjust balances for settlements
+    for (var settlement in _settlements) {
+      if (settlement.settled) {
+        // Reduce the payer's balance (they paid less now) and reduce the receiver's balance (they owe less)
+        balances[settlement.fromId] =
+            (balances[settlement.fromId] ?? 0) + settlement.amount;
+        balances[settlement.toId] =
+            (balances[settlement.toId] ?? 0) - settlement.amount;
       }
     }
 
@@ -201,14 +194,37 @@ class ExpenseProvider extends ChangeNotifier {
 
   Future<bool> recordSettlement(Settlement settlement) async {
     try {
-      int id = await _databaseHelper.insertSettlement(settlement);
+      String id = await _databaseHelper.insertSettlement(settlement);
       settlement.id = id;
       _settlements.add(settlement);
-      await calculateSettlements();
+      // Recalculate to update UI with new balances
       notifyListeners();
       return true;
     } catch (e) {
       return false;
+    }
+  }
+
+  Future<bool> markSettlementAsSettled(Settlement settlement) async {
+    try {
+      settlement.settled = true;
+      await _databaseHelper.updateSettlement(settlement);
+      int index = _settlements.indexWhere((s) => s.id == settlement.id);
+      if (index != -1) {
+        _settlements[index] = settlement;
+      }
+      notifyListeners();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Settlement? getSettlementById(dynamic id) {
+    try {
+      return _settlements.firstWhere((s) => s.id == id);
+    } catch (e) {
+      return null;
     }
   }
 
@@ -221,20 +237,23 @@ class ExpenseProvider extends ChangeNotifier {
 
   Future<bool> addCompanyFund(CompanyFund fund) async {
     try {
-      int id = await _databaseHelper.insertCompanyFund(fund);
-      fund.id = id;
-      _companyFunds.insert(0, fund);
-      _companyFundBalance = await _databaseHelper.getCompanyFundBalance();
-      notifyListeners();
-      return true;
+      String id = await _databaseHelper.insertCompanyFund(fund);
+      if (id.isNotEmpty) {
+        fund.id = id;
+        _companyFunds.insert(0, fund);
+        _companyFundBalance = await _databaseHelper.getCompanyFundBalance();
+        notifyListeners();
+        return true;
+      }
+      return false;
     } catch (e) {
       return false;
     }
   }
 
-  Future<bool> removeCompanyFund(int id) async {
+  Future<bool> removeCompanyFund(dynamic id) async {
     try {
-      await _databaseHelper.deleteCompanyFund(id);
+      await _databaseHelper.deleteCompanyFund(id.toString());
       _companyFunds.removeWhere((f) => f.id == id);
       _companyFundBalance = await _databaseHelper.getCompanyFundBalance();
       notifyListeners();

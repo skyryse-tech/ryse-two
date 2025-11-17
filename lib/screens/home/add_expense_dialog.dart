@@ -20,8 +20,8 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
   late TextEditingController _companyNameController;
   
   String _selectedCategory = expenseCategories.first;
-  int? _selectedPayer;
-  List<int> _selectedContributors = [];
+  dynamic _selectedPayer;
+  List<dynamic> _selectedContributors = [];
   DateTime _selectedDate = DateTime.now();
   bool _isCompanyFund = false;
 
@@ -165,7 +165,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                   const SizedBox(height: 16),
                   
                   // Who Paid - Disabled for company fund
-                  DropdownButtonFormField<int>(
+                  DropdownButtonFormField<dynamic>(
                     initialValue: _selectedPayer,
                     decoration: InputDecoration(
                       labelText: _isCompanyFund ? 'Company Fund Payment' : 'Who Paid?',
@@ -175,7 +175,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                     items: _isCompanyFund
                         ? [] // Empty when company fund is selected
                         : provider.coFounders
-                            .map((cf) => DropdownMenuItem(
+                            .map((cf) => DropdownMenuItem<dynamic>(
                                   value: cf.id,
                                   child: Text(cf.name),
                                 ))
@@ -286,10 +286,10 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
     }
 
     // Include payer in contributors if not company fund
-    List<int> finalContributors = [..._selectedContributors];
+    List<dynamic> finalContributors = [..._selectedContributors];
     if (!_isCompanyFund && _selectedPayer != null) {
       if (!finalContributors.contains(_selectedPayer)) {
-        finalContributors.add(_selectedPayer!);
+        finalContributors.add(_selectedPayer);
       }
     }
 

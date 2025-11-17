@@ -1,7 +1,7 @@
 class Settlement {
-  int? id;
-  int fromId;
-  int toId;
+  dynamic id; // Can be int (SQLite) or String (MongoDB)
+  dynamic fromId; // Can be int or String
+  dynamic toId; // Can be int or String
   double amount;
   DateTime date;
   String notes;
@@ -19,13 +19,12 @@ class Settlement {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
       'fromId': fromId,
       'toId': toId,
       'amount': amount,
       'date': date.toIso8601String(),
       'notes': notes,
-      'settled': settled ? 1 : 0,
+      'settled': settled,
     };
   }
 
@@ -34,10 +33,10 @@ class Settlement {
       id: map['id'],
       fromId: map['fromId'],
       toId: map['toId'],
-      amount: map['amount'].toDouble(),
-      date: DateTime.parse(map['date']),
+      amount: map['amount'] is double ? map['amount'] : (map['amount'] as num).toDouble(),
+      date: map['date'] is String ? DateTime.parse(map['date']) : map['date'] as DateTime,
       notes: map['notes'] ?? '',
-      settled: map['settled'] == 1,
+      settled: map['settled'] == true || map['settled'] == 1,
     );
   }
 

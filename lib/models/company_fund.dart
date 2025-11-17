@@ -1,5 +1,5 @@
 class CompanyFund {
-  int? id;
+  dynamic id; // Can be int (SQLite) or String (MongoDB)
   double amount;
   String description;
   String type; // 'add' or 'remove'
@@ -17,7 +17,6 @@ class CompanyFund {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
       'amount': amount,
       'description': description,
       'type': type,
@@ -29,11 +28,11 @@ class CompanyFund {
   factory CompanyFund.fromMap(Map<String, dynamic> map) {
     return CompanyFund(
       id: map['id'],
-      amount: map['amount'].toDouble(),
+      amount: (map['amount'] is double ? map['amount'] : (map['amount'] as num).toDouble()),
       description: map['description'],
       type: map['type'],
-      date: DateTime.parse(map['date']),
-      createdAt: DateTime.parse(map['createdAt']),
+      date: map['date'] is String ? DateTime.parse(map['date']) : map['date'] as DateTime,
+      createdAt: map['createdAt'] is String ? DateTime.parse(map['createdAt']) : map['createdAt'] as DateTime,
     );
   }
 

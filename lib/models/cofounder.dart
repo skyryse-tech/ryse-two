@@ -1,5 +1,5 @@
 class CoFounder {
-  int? id;
+  dynamic id; // Can be int (SQLite) or String (MongoDB)
   String name;
   String email;
   String phone;
@@ -29,13 +29,12 @@ class CoFounder {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
       'name': name,
       'email': email,
       'phone': phone,
       'avatarColor': avatarColor,
       'createdAt': createdAt.toIso8601String(),
-      'isActive': isActive ? 1 : 0,
+      'isActive': isActive,
       'role': role,
       'bankName': bankName,
       'bankAccountNumber': bankAccountNumber,
@@ -51,13 +50,13 @@ class CoFounder {
       email: map['email'],
       phone: map['phone'] ?? '',
       avatarColor: map['avatarColor'] ?? 'FF1E88E5',
-      createdAt: DateTime.parse(map['createdAt']),
-      isActive: map['isActive'] == 1,
+      createdAt: map['createdAt'] is String ? DateTime.parse(map['createdAt']) : map['createdAt'] as DateTime,
+      isActive: map['isActive'] == true || map['isActive'] == 1,
       role: map['role'] ?? 'Co-founder',
       bankName: map['bankName'] ?? '',
       bankAccountNumber: map['bankAccountNumber'] ?? '',
       bankIFSC: map['bankIFSC'] ?? '',
-      targetContribution: map['targetContribution'] ?? 0,
+      targetContribution: (map['targetContribution'] is double ? map['targetContribution'] : (map['targetContribution'] as num?)?.toDouble() ?? 0),
     );
   }
 
