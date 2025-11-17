@@ -316,20 +316,24 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
 
     if (widget.isEdit) {
       provider.updateExpense(expense).then((success) {
-        if (success) {
+        if (mounted) {
           Navigator.pop(context, true);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Expense updated successfully')),
-          );
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Expense updated successfully')),
+            );
+          }
         }
       });
     } else {
       provider.addExpense(expense).then((success) {
-        if (success) {
+        if (mounted) {
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Expense recorded successfully')),
-          );
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Expense recorded successfully')),
+            );
+          }
         }
       });
     }

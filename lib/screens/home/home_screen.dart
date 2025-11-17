@@ -55,10 +55,6 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Co-founders',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.wallet),
-            label: 'Company Fund',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.analytics),
             label: 'Reports',
           ),
@@ -82,10 +78,8 @@ class _HomeScreenState extends State<HomeScreen> {
       case 2:
         return const CoFounderScreen();
       case 3:
-        return const CompanyFundScreen();
-      case 4:
         return const ReportsScreen();
-      case 5:
+      case 4:
         return const SettlementsScreen();
       default:
         return DashboardScreen(
@@ -219,6 +213,68 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 24),
+                    
+                    // Company Fund Card (clickable to open full screen)
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CompanyFundScreen(),
+                          ),
+                        );
+                      },
+                      child: Card(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.green.withValues(alpha: 0.8),
+                              Colors.green.withValues(alpha: 0.5),
+                            ],
+                          ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Company Fund',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(color: Colors.white70),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      '\$${provider.companyFundBalance.toStringAsFixed(2)}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineSmall
+                                          ?.copyWith(color: Colors.white),
+                                    ),
+                                  ],
+                                ),
+                                Icon(
+                                  Icons.wallet,
+                                  size: 48,
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    
                     // Co-founders Balance
                     Text(
                       'Co-founders Balance',

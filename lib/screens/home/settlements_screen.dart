@@ -193,11 +193,13 @@ class SettlementsScreen extends StatelessWidget {
                 settled: true,
               );
               provider.recordSettlement(settlement).then((success) {
-                Navigator.pop(context);
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Settlement recorded')),
-                  );
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Settlement recorded')),
+                    );
+                  }
                 }
               });
             },

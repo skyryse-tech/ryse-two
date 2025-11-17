@@ -172,21 +172,37 @@ class _AddCompanyFundDialogState extends State<AddCompanyFundDialog> {
       return;
     }
 
-    final fund = CompanyFund(
-      amount: double.parse(_amountController.text),
-      description: _descriptionController.text,
-      type: _fundType,
-      date: _selectedDate,
-      createdAt: DateTime.now(),
-    );
+    try {
+      final fund = CompanyFund(
+        amount: double.parse(_amountController.text),
+        description: _descriptionController.text,
+        type: _fundType,
+        date: _selectedDate,
+        createdAt: DateTime.now(),
+      );
 
-    provider.addCompanyFund(fund).then((success) {
-      if (success) {
-        Navigator.pop(context);
+      provider.addCompanyFund(fund).then((success) {
+        if (mounted) {
+          Navigator.pop(context);
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Fund transaction recorded successfully')),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to record transaction')),
+            );
+          }
+        }
+      }).catchError((error) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Fund transaction recorded')),
+          SnackBar(content: Text('Error: $error')),
         );
-      }
-    });
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invalid amount: $e')),
+      );
+    }
   }
 }

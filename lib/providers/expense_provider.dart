@@ -204,6 +204,7 @@ class ExpenseProvider extends ChangeNotifier {
       int id = await _databaseHelper.insertSettlement(settlement);
       settlement.id = id;
       _settlements.add(settlement);
+      await calculateSettlements();
       notifyListeners();
       return true;
     } catch (e) {

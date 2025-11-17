@@ -20,9 +20,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
           length: 3,
           child: Scaffold(
             appBar: AppBar(
-              title: const Text('Reports & Analytics'),
+              backgroundColor: AppTheme.primary,
+              title: const Text('Reports & Analytics', style: TextStyle(color: Colors.white)),
               elevation: 0,
+              iconTheme: const IconThemeData(color: Colors.white),
               bottom: const TabBar(
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                indicatorColor: Colors.white,
                 tabs: [
                   Tab(text: 'Overview'),
                   Tab(text: 'By Person'),
