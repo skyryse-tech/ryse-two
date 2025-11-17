@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/cofounder.dart';
 import '../models/expense.dart';
 import '../models/settlement.dart';
+import '../models/company_fund.dart';
 import '../database/database_helper.dart';
 
 class ExpenseProvider extends ChangeNotifier {
@@ -10,16 +11,21 @@ class ExpenseProvider extends ChangeNotifier {
   List<CoFounder> _coFounders = [];
   List<Expense> _expenses = [];
   List<Settlement> _settlements = [];
+  List<CompanyFund> _companyFunds = [];
+  double _companyFundBalance = 0;
 
   List<CoFounder> get coFounders => _coFounders;
   List<Expense> get expenses => _expenses;
   List<Settlement> get settlements => _settlements;
+  List<CompanyFund> get companyFunds => _companyFunds;
+  double get companyFundBalance => _companyFundBalance;
 
   // Load all data
   Future<void> loadAllData() async {
     await loadCoFounders();
     await loadExpenses();
     await loadSettlements();
+    await loadCompanyFunds();
   }
 
   // CoFounder operations
@@ -198,6 +204,38 @@ class ExpenseProvider extends ChangeNotifier {
       int id = await _databaseHelper.insertSettlement(settlement);
       settlement.id = id;
       _settlements.add(settlement);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Company Fund Operations
+  Future<void> loadCompanyFunds() async {
+    _companyFunds = await _databaseHelper.getCompanyFunds();
+    _companyFundBalance = await _databaseHelper.getCompanyFundBalance();
+    notifyListeners();
+  }
+
+  Future<bool> addCompanyFund(CompanyFund fund) async {
+    try {
+      int id = await _databaseHelper.insertCompanyFund(fund);
+      fund.id = id;
+      _companyFunds.insert(0, fund);
+      _companyFundBalance = await _databaseHelper.getCompanyFundBalance();
+      notifyListeners();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> removeCompanyFund(int id) async {
+    try {
+      await _databaseHelper.deleteCompanyFund(id);
+      _companyFunds.removeWhere((f) => f.id == id);
+      _companyFundBalance = await _databaseHelper.getCompanyFundBalance();
       notifyListeners();
       return true;
     } catch (e) {

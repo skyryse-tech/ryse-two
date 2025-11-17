@@ -222,14 +222,23 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                   itemBuilder: (context) => [
                     PopupMenuItem(
                       child: const Text('Edit'),
-                      onTap: () {
-                        // Edit expense
+                      onTap: () async {
+                        final result = await showDialog(
+                          context: context,
+                          builder: (context) => AddExpenseDialog(
+                            expense: expense,
+                            isEdit: true,
+                          ),
+                        );
+                        if (result == true && mounted) {
+                          setState(() {});
+                        }
                       },
                     ),
                     PopupMenuItem(
                       child: const Text('Delete'),
                       onTap: () {
-                        _showDeleteConfirmation(context, expense, provider);
+                        _deleteWithUndo(context, expense, provider);
                       },
                     ),
                   ],
@@ -242,34 +251,24 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     );
   }
 
-  void _showDeleteConfirmation(
+  void _deleteWithUndo(
     BuildContext context,
     Expense expense,
     dynamic provider,
   ) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Expense?'),
-        content: const Text(
-          'This action cannot be undone.',
+    provider.deleteExpense(expense.id);
+    
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Expense deleted'),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            provider.addExpense(expense);
+          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              provider.deleteExpense(expense.id);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Expense deleted')),
-              );
-            },
-            child: const Text('Delete'),
-          ),
-        ],
       ),
     );
   }

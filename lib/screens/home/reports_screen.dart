@@ -71,7 +71,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [AppTheme.primary, AppTheme.primary.withOpacity(0.7)],
+                colors: [AppTheme.primary, AppTheme.primary.withValues(alpha: 0.7)],
               ),
               borderRadius: BorderRadius.circular(16),
             ),
@@ -235,7 +235,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               entry.value,
               provider.getTotalExpenses(),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -249,7 +249,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [color, color.withOpacity(0.7)],
+            colors: [color, color.withValues(alpha: 0.7)],
           ),
         ),
         padding: const EdgeInsets.all(16),

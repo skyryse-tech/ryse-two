@@ -6,6 +6,7 @@ import '../../theme/app_theme.dart';
 import '../../models/cofounder.dart';
 import 'expense_screen.dart';
 import 'cofounder_screen.dart';
+import 'company_fund_screen.dart';
 import 'reports_screen.dart';
 import 'settlements_screen.dart';
 
@@ -23,7 +24,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
-      Provider.of<ExpenseProvider>(context, listen: false).loadAllData();
+      if (mounted) {
+        Provider.of<ExpenseProvider>(context, listen: false).loadAllData();
+      }
     });
   }
 
@@ -52,6 +55,10 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Co-founders',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.wallet),
+            label: 'Company Fund',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.analytics),
             label: 'Reports',
           ),
@@ -67,23 +74,31 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBody() {
     switch (_selectedIndex) {
       case 0:
-        return const DashboardScreen();
+        return DashboardScreen(
+          onViewAll: () => setState(() => _selectedIndex = 1),
+        );
       case 1:
         return const ExpenseScreen();
       case 2:
         return const CoFounderScreen();
       case 3:
-        return const ReportsScreen();
+        return const CompanyFundScreen();
       case 4:
+        return const ReportsScreen();
+      case 5:
         return const SettlementsScreen();
       default:
-        return const DashboardScreen();
+        return DashboardScreen(
+          onViewAll: () => setState(() => _selectedIndex = 1),
+        );
     }
   }
 }
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  final VoidCallback? onViewAll;
+
+  const DashboardScreen({super.key, this.onViewAll});
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +139,7 @@ class DashboardScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
+                                  color: Colors.black.withValues(alpha: 0.2),
                                   blurRadius: 8,
                                 ),
                               ],
@@ -217,7 +232,7 @@ class DashboardScreen extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: _buildBalanceCard(context, coFounder, balance, color),
                       );
-                    }).toList(),
+                    }),
                     const SizedBox(height: 24),
                     // Recent Expenses
                     Row(
@@ -228,9 +243,7 @@ class DashboardScreen extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         TextButton(
-                          onPressed: () {
-                            // Navigate to expenses
-                          },
+                          onPressed: onViewAll,
                           child: const Text('View All'),
                         ),
                       ],
@@ -267,7 +280,7 @@ class DashboardScreen extends StatelessWidget {
                           padding: const EdgeInsets.only(bottom: 12),
                           child: _buildExpenseItem(context, expense, payer),
                         );
-                      }).toList(),
+                      }),
                   ],
                 ),
               ),

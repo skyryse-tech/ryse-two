@@ -5,10 +5,10 @@ class LogoIcon extends StatelessWidget {
   final Color? color;
 
   const LogoIcon({
-    Key? key,
+    super.key,
     this.size = 100,
     this.color,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

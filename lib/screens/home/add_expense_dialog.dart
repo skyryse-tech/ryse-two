@@ -4,7 +4,10 @@ import '../../providers/expense_provider.dart';
 import '../../models/expense.dart';
 
 class AddExpenseDialog extends StatefulWidget {
-  const AddExpenseDialog({super.key});
+  final Expense? expense;
+  final bool isEdit;
+
+  const AddExpenseDialog({super.key, this.expense, this.isEdit = false});
 
   @override
   State<AddExpenseDialog> createState() => _AddExpenseDialogState();
@@ -29,6 +32,19 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
     _amountController = TextEditingController();
     _notesController = TextEditingController();
     _companyNameController = TextEditingController(text: 'Company Fund');
+    
+    if (widget.isEdit && widget.expense != null) {
+      final exp = widget.expense!;
+      _descriptionController.text = exp.description;
+      _amountController.text = exp.amount.toString();
+      _notesController.text = exp.notes ?? '';
+      _companyNameController.text = exp.companyName;
+      _selectedCategory = exp.category;
+      _selectedPayer = exp.paidById == 0 ? null : exp.paidById;
+      _selectedContributors = List.from(exp.contributorIds);
+      _selectedDate = exp.date;
+      _isCompanyFund = exp.isCompanyFund;
+    }
   }
 
   @override
@@ -53,7 +69,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Record Expense',
+                    widget.isEdit ? 'Edit Expense' : 'Record Expense',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 24),
@@ -84,7 +100,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                   
                   // Category
                   DropdownButtonFormField<String>(
-                    value: _selectedCategory,
+                    initialValue: _selectedCategory,
                     decoration: InputDecoration(
                       labelText: 'Category',
                       prefixIcon: const Icon(Icons.category),
@@ -148,28 +164,34 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                   
                   const SizedBox(height: 16),
                   
-                  // Who Paid
+                  // Who Paid - Disabled for company fund
                   DropdownButtonFormField<int>(
-                    value: _selectedPayer,
+                    initialValue: _selectedPayer,
                     decoration: InputDecoration(
-                      labelText: 'Who Paid?',
+                      labelText: _isCompanyFund ? 'Company Fund Payment' : 'Who Paid?',
                       prefixIcon: const Icon(Icons.person),
+                      helperText: _isCompanyFund ? 'Deducted from company fund' : null,
                     ),
-                    items: provider.coFounders
-                        .map((cf) => DropdownMenuItem(
-                              value: cf.id,
-                              child: Text(cf.name),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _selectedPayer = value;
-                          // Remove payer from contributors
-                          _selectedContributors.remove(value);
-                        });
-                      }
-                    },
+                    items: _isCompanyFund
+                        ? [] // Empty when company fund is selected
+                        : provider.coFounders
+                            .map((cf) => DropdownMenuItem(
+                                  value: cf.id,
+                                  child: Text(cf.name),
+                                ))
+                            .toList(),
+                    onChanged: _isCompanyFund
+                        ? null // Disabled when company fund
+                        : (value) {
+                              if (value != null) {
+                                setState(() {
+                                  _selectedPayer = value;
+                                  // Remove payer from contributors
+                                  _selectedContributors.remove(value);
+                                });
+                              }
+                            },
+                    isExpanded: true,
                   ),
                   const SizedBox(height: 24),
                   
@@ -199,7 +221,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                         });
                       },
                     );
-                  }).toList(),
+                  }),
                   
                   const SizedBox(height: 16),
                   
@@ -226,7 +248,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                       const SizedBox(width: 12),
                       ElevatedButton(
                         onPressed: () => _saveExpense(context, provider),
-                        child: const Text('Save'),
+                        child: Text(widget.isEdit ? 'Update' : 'Save'),
                       ),
                     ],
                   ),
@@ -254,20 +276,24 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
       return;
     }
 
-    if (_selectedPayer == null) {
+    // For company fund, use a placeholder payer ID (0 or special value)
+    // For personal expense, require payer selection
+    if (!_isCompanyFund && _selectedPayer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select who paid')),
       );
       return;
     }
 
-    // Include payer in contributors if they should be split
+    // Include payer in contributors if not company fund
     List<int> finalContributors = [..._selectedContributors];
-    if (!finalContributors.contains(_selectedPayer)) {
-      finalContributors.add(_selectedPayer!);
+    if (!_isCompanyFund && _selectedPayer != null) {
+      if (!finalContributors.contains(_selectedPayer)) {
+        finalContributors.add(_selectedPayer!);
+      }
     }
 
-    if (finalContributors.isEmpty) {
+    if (finalContributors.isEmpty && !_isCompanyFund) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select who contributed')),
       );
@@ -275,25 +301,37 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
     }
 
     final expense = Expense(
+      id: widget.isEdit ? widget.expense?.id : null,
       description: _descriptionController.text,
       amount: double.parse(_amountController.text),
-      paidById: _selectedPayer!,
-      contributorIds: finalContributors,
+      paidById: _isCompanyFund ? 0 : _selectedPayer!,
+      contributorIds: finalContributors.isEmpty ? [0] : finalContributors,
       category: _selectedCategory,
       date: _selectedDate,
       notes: _notesController.text.isEmpty ? null : _notesController.text,
-      createdAt: DateTime.now(),
+      createdAt: widget.isEdit ? widget.expense!.createdAt : DateTime.now(),
       isCompanyFund: _isCompanyFund,
       companyName: _isCompanyFund ? _companyNameController.text : '',
     );
 
-    provider.addExpense(expense).then((success) {
-      if (success) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Expense recorded successfully')),
-        );
-      }
-    });
+    if (widget.isEdit) {
+      provider.updateExpense(expense).then((success) {
+        if (success) {
+          Navigator.pop(context, true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Expense updated successfully')),
+          );
+        }
+      });
+    } else {
+      provider.addExpense(expense).then((success) {
+        if (success) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Expense recorded successfully')),
+          );
+        }
+      });
+    }
   }
 }

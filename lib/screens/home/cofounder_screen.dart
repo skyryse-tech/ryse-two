@@ -4,6 +4,7 @@ import '../../providers/expense_provider.dart';
 import '../../models/cofounder.dart';
 import '../../theme/app_theme.dart';
 import 'add_cofounder_dialog.dart';
+import 'edit_cofounder_dialog.dart';
 
 class CoFounderScreen extends StatelessWidget {
   const CoFounderScreen({super.key});
@@ -121,7 +122,12 @@ class CoFounderScreen extends StatelessWidget {
                     PopupMenuItem(
                       child: const Text('Edit'),
                       onTap: () {
-                        // Edit co-founder
+                        showDialog(
+                          context: context,
+                          builder: (context) => EditCoFounderDialog(
+                            coFounder: coFounder,
+                          ),
+                        );
                       },
                     ),
                     PopupMenuItem(

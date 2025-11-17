@@ -3,6 +3,7 @@ import 'package:path/path.dart';
 import '../models/cofounder.dart';
 import '../models/expense.dart';
 import '../models/settlement.dart';
+import '../models/company_fund.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'ryse_two.db';
@@ -77,6 +78,18 @@ class DatabaseHelper {
         settled INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (fromId) REFERENCES cofounder(id),
         FOREIGN KEY (toId) REFERENCES cofounder(id)
+      )''',
+    );
+
+    // Create Company Fund table
+    await db.execute(
+      '''CREATE TABLE company_fund (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        amount REAL NOT NULL,
+        description TEXT NOT NULL,
+        type TEXT NOT NULL,
+        date TEXT NOT NULL,
+        createdAt TEXT NOT NULL
       )''',
     );
   }
@@ -180,6 +193,40 @@ class DatabaseHelper {
     Database db = await database;
     await db.delete('expense');
     await db.delete('settlement');
+    await db.delete('company_fund');
     await db.delete('cofounder');
+  }
+
+  // Company Fund Operations
+  Future<int> insertCompanyFund(CompanyFund fund) async {
+    Database db = await database;
+    return await db.insert('company_fund', fund.toMap());
+  }
+
+  Future<List<CompanyFund>> getCompanyFunds() async {
+    Database db = await database;
+    final List<Map<String, dynamic>> maps =
+        await db.query('company_fund', orderBy: 'date DESC');
+    return List.generate(maps.length, (i) => CompanyFund.fromMap(maps[i]));
+  }
+
+  Future<int> deleteCompanyFund(int id) async {
+    Database db = await database;
+    return await db.delete('company_fund', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<double> getCompanyFundBalance() async {
+    Database db = await database;
+    final List<Map<String, dynamic>> maps =
+        await db.query('company_fund');
+    double balance = 0;
+    for (var map in maps) {
+      if (map['type'] == 'add') {
+        balance += (map['amount'] as num).toDouble();
+      } else {
+        balance -= (map['amount'] as num).toDouble();
+      }
+    }
+    return balance;
   }
 }
