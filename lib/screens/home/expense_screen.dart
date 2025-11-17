@@ -165,7 +165,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '\$${expense.amount.toStringAsFixed(2)}',
+                      '₹${expense.amount.toStringAsFixed(2)}',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppTheme.accent,
@@ -209,7 +209,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       Text(
-                        '${expense.contributorIds.length} people involved • \$${expense.getContributionPerPerson().toStringAsFixed(2)} each',
+                        '${expense.contributorIds.length} people involved • ₹${expense.getContributionPerPerson().toStringAsFixed(2)} each',
                         style: Theme.of(context)
                             .textTheme
                             .bodySmall

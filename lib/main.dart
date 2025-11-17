@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'providers/expense_provider.dart';
 import 'theme/app_theme.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/splash/splash_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -21,7 +22,7 @@ class MyApp extends StatelessWidget {
         title: 'Ryse Two - Expense Tracker',
         theme: AppTheme.lightTheme,
         debugShowCheckedModeBanner: false,
-        home: const HomeScreen(),
+        home: const SplashScreen(),
         routes: {
           '/home': (context) => const HomeScreen(),
         },

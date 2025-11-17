@@ -93,7 +93,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                       labelText: 'Amount',
                       hintText: '0.00',
                       prefixIcon: const Icon(Icons.attach_money),
-                      prefixText: '\$ ',
+                      prefixText: '₹ ',
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -300,12 +300,14 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
       return;
     }
 
+    // For company fund: paidById should be null/empty and contributors should be empty list
+    // For personal expenses: paidById must be set and contributors must include at least payer
     final expense = Expense(
       id: widget.isEdit ? widget.expense?.id : null,
       description: _descriptionController.text,
       amount: double.parse(_amountController.text),
-      paidById: _isCompanyFund ? 0 : _selectedPayer!,
-      contributorIds: finalContributors.isEmpty ? [0] : finalContributors,
+      paidById: _isCompanyFund ? '' : _selectedPayer!,
+      contributorIds: _isCompanyFund ? [] : finalContributors,
       category: _selectedCategory,
       date: _selectedDate,
       notes: _notesController.text.isEmpty ? null : _notesController.text,

@@ -61,7 +61,8 @@ class Expense {
   }
 
   double getContributionPerPerson() {
-    return amount / (contributorIds.isEmpty ? 1 : contributorIds.length);
+    if (contributorIds.isEmpty) return amount;
+    return amount / contributorIds.length;
   }
 
   Expense copyWith({

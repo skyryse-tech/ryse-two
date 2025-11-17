@@ -22,16 +22,24 @@ class ExpenseProvider extends ChangeNotifier {
 
   // Load all data
   Future<void> loadAllData() async {
-    await loadCoFounders();
-    await loadExpenses();
-    await loadSettlements();
-    await loadCompanyFunds();
+    try {
+      await loadCoFounders();
+      await loadExpenses();
+      await loadSettlements();
+      await loadCompanyFunds();
+    } catch (e) {
+      // Error loading data from MongoDB
+    }
   }
 
   // CoFounder operations
   Future<void> loadCoFounders() async {
-    _coFounders = await _databaseHelper.getCoFounders();
-    notifyListeners();
+    try {
+      _coFounders = await _databaseHelper.getCoFounders();
+      notifyListeners();
+    } catch (e) {
+      // Error loading cofounders
+    }
   }
 
   Future<bool> addCoFounder(CoFounder coFounder) async {
@@ -82,8 +90,12 @@ class ExpenseProvider extends ChangeNotifier {
 
   // Expense operations
   Future<void> loadExpenses() async {
-    _expenses = await _databaseHelper.getExpenses();
-    notifyListeners();
+    try {
+      _expenses = await _databaseHelper.getExpenses();
+      notifyListeners();
+    } catch (e) {
+      // Error loading expenses
+    }
   }
 
   Future<bool> addExpense(Expense expense) async {
@@ -140,16 +152,20 @@ class ExpenseProvider extends ChangeNotifier {
     return _expenses.fold(0, (sum, exp) => sum + exp.amount);
   }
 
-  double getExpensesByPayer(int payerId) {
+  double getExpensesByPayer(dynamic payerId) {
     return _expenses
-        .where((exp) => exp.paidById == payerId)
+        .where((exp) => exp.paidById == payerId && !exp.isCompanyFund)
         .fold(0, (sum, exp) => sum + exp.amount);
   }
 
   // Settlement calculations
   Future<void> loadSettlements() async {
-    _settlements = await _databaseHelper.getSettlements();
-    notifyListeners();
+    try {
+      _settlements = await _databaseHelper.getSettlements();
+      notifyListeners();
+    } catch (e) {
+      // Error loading settlements
+    }
   }
 
   Future<void> calculateSettlements() async {
@@ -166,15 +182,27 @@ class ExpenseProvider extends ChangeNotifier {
       balances[coFounder.id] = 0;
     }
 
-    // Add expenses to balances
+    // Add expenses to balances (skip company fund expenses)
     for (var expense in _expenses) {
+      // Skip company fund expenses in balance calculation
+      if (expense.isCompanyFund) {
+        continue;
+      }
+
+      // Validate that paidById is not empty
+      if (expense.paidById == null || expense.paidById.toString().isEmpty) {
+        continue;
+      }
+
       double perPerson = expense.getContributionPerPerson();
       balances[expense.paidById] =
           (balances[expense.paidById] ?? 0) + expense.amount;
 
       for (var contributorId in expense.contributorIds) {
-        balances[contributorId] =
-            (balances[contributorId] ?? 0) - perPerson;
+        if (contributorId != null && contributorId.toString().isNotEmpty) {
+          balances[contributorId] =
+              (balances[contributorId] ?? 0) - perPerson;
+        }
       }
     }
 
@@ -230,9 +258,13 @@ class ExpenseProvider extends ChangeNotifier {
 
   // Company Fund Operations
   Future<void> loadCompanyFunds() async {
-    _companyFunds = await _databaseHelper.getCompanyFunds();
-    _companyFundBalance = await _databaseHelper.getCompanyFundBalance();
-    notifyListeners();
+    try {
+      _companyFunds = await _databaseHelper.getCompanyFunds();
+      _companyFundBalance = await _databaseHelper.getCompanyFundBalance();
+      notifyListeners();
+    } catch (e) {
+      // Error loading company funds
+    }
   }
 
   Future<bool> addCompanyFund(CompanyFund fund) async {

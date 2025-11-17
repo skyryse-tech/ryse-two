@@ -43,7 +43,7 @@ class CompanyFundScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '\$${provider.companyFundBalance.toStringAsFixed(2)}',
+                            '₹${provider.companyFundBalance.toStringAsFixed(2)}',
                             style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: Colors.white),
                           ),
                           const SizedBox(height: 16),
@@ -139,7 +139,7 @@ class CompanyFundScreen extends StatelessWidget {
               ),
             ),
             Text(
-              '${isAdd ? '+' : '-'}\$${fund.amount.toStringAsFixed(2)}',
+              '${isAdd ? '+' : '-'}₹${fund.amount.toStringAsFixed(2)}',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: color,

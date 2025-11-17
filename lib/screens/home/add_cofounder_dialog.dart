@@ -225,41 +225,59 @@ class _AddCoFounderDialogState extends State<AddCoFounderDialog> {
   }
 
   void _saveCoFounder(BuildContext context, dynamic provider) {
-    if (_nameController.text.isEmpty) {
+    // Validate required fields
+    if (_nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a name')),
       );
       return;
     }
 
-    if (_emailController.text.isEmpty) {
+    if (_emailController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter an email')),
       );
       return;
     }
 
+    // Validate email format
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+    if (!emailRegex.hasMatch(_emailController.text.trim())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email address')),
+      );
+      return;
+    }
+
     final coFounder = CoFounder(
-      name: _nameController.text,
-      email: _emailController.text,
-      phone: _phoneController.text,
-      role: _roleController.text,
+      name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      phone: _phoneController.text.trim(),
+      role: _roleController.text.trim().isEmpty ? 'Co-founder' : _roleController.text.trim(),
       avatarColor: _selectedColor,
       createdAt: DateTime.now(),
-      bankName: _bankNameController.text,
-      bankAccountNumber: _bankAccountController.text,
-      bankIFSC: _bankIFSCController.text,
+      bankName: _bankNameController.text.trim(),
+      bankAccountNumber: _bankAccountController.text.trim(),
+      bankIFSC: _bankIFSCController.text.trim(),
     );
 
     provider.addCoFounder(coFounder).then((success) {
-      if (success) {
+      if (mounted) {
         Navigator.pop(context);
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Team member added successfully')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error adding team member')),
+          );
+        }
+      }
+    }).catchError((e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Team member added successfully')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error adding team member')),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     });

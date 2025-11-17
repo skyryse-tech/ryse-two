@@ -161,7 +161,7 @@ class CoFounderScreen extends StatelessWidget {
                             ?.copyWith(color: AppTheme.textSecondary),
                       ),
                       Text(
-                        '\$${balance.abs().toStringAsFixed(2)}',
+                        '₹${balance.abs().toStringAsFixed(2)}',
                         style:
                             Theme.of(context).textTheme.titleMedium?.copyWith(
                                   color: color,
@@ -181,7 +181,7 @@ class CoFounderScreen extends StatelessWidget {
                             ?.copyWith(color: AppTheme.textSecondary),
                       ),
                       Text(
-                        '\$${provider.getExpensesByPayer(coFounder.id).toStringAsFixed(2)}',
+                        '₹${provider.getExpensesByPayer(coFounder.id).toStringAsFixed(2)}',
                         style:
                             Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,

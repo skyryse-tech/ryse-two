@@ -49,7 +49,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _buildOverviewTab(BuildContext context, dynamic provider) {
-    final totalExpenses = provider.getTotalExpenses();
     final coFounders = provider.coFounders;
     
     // Calculate company fund vs personal expenses
@@ -62,6 +61,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
         personalExpense += expense.amount;
       }
     }
+
+    final totalExpenses = personalExpense; // Only personal expenses count as total
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -91,7 +92,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '\$${totalExpenses.toStringAsFixed(2)}',
+                  '₹${totalExpenses.toStringAsFixed(2)}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 36,
@@ -109,7 +110,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               Expanded(
                 child: _buildMetricCard(
                   'Company Fund',
-                  '\$${companyFund.toStringAsFixed(2)}',
+                  '₹${companyFund.toStringAsFixed(2)}',
                   Colors.green,
                 ),
               ),
@@ -117,7 +118,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               Expanded(
                 child: _buildMetricCard(
                   'Personal',
-                  '\$${personalExpense.toStringAsFixed(2)}',
+                  '₹${personalExpense.toStringAsFixed(2)}',
                   Colors.orange,
                 ),
               ),
@@ -153,8 +154,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 child: _buildMetricCard(
                   'Average Expense',
                   provider.expenses.isEmpty
-                      ? '\$0.00'
-                      : '\$${(totalExpenses / provider.expenses.length).toStringAsFixed(2)}',
+                      ? '₹0.00'
+                      : '₹${(totalExpenses / provider.expenses.length).toStringAsFixed(2)}',
                   Colors.purple,
                 ),
               ),
@@ -163,8 +164,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 child: _buildMetricCard(
                   'Per Capita',
                   coFounders.isEmpty
-                      ? '\$0.00'
-                      : '\$${(totalExpenses / coFounders.length).toStringAsFixed(2)}',
+                      ? '₹0.00'
+                      : '₹${(totalExpenses / coFounders.length).toStringAsFixed(2)}',
                   Colors.indigo,
                 ),
               ),
@@ -216,6 +217,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget _buildByCategoryTab(BuildContext context, dynamic provider) {
     Map<String, double> categoryTotals = {};
     for (var expense in provider.expenses) {
+      // Skip company fund expenses in category view
+      if (expense.isCompanyFund) continue;
+      
       categoryTotals[expense.category] =
           (categoryTotals[expense.category] ?? 0) + expense.amount;
     }
@@ -233,14 +237,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 16),
-          ...sortedCategories.map((entry) {
-            return _buildCategoryItem(
-              context,
-              entry.key,
-              entry.value,
-              provider.getTotalExpenses(),
-            );
-          }),
+          sortedCategories.isEmpty
+              ? Center(
+                  child: Text(
+                    'No expense data',
+                    style: TextStyle(color: Colors.grey[400]),
+                  ),
+                )
+              : ListView(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: sortedCategories.map((entry) {
+                    return _buildCategoryItem(
+                      context,
+                      entry.key,
+                      entry.value,
+                      provider.getTotalExpenses(),
+                    );
+                  }).toList(),
+                ),
         ],
       ),
     );
@@ -283,8 +298,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget _buildExpenseChart(dynamic provider) {
     Map<String, double> categoryTotals = {};
     for (var expense in provider.expenses) {
+      // Skip company fund expenses in chart
+      if (expense.isCompanyFund) continue;
+      
       categoryTotals[expense.category] =
           (categoryTotals[expense.category] ?? 0) + expense.amount;
+    }
+
+    // Calculate total only for personal expenses
+    double personalTotal = 0;
+    for (var expense in provider.expenses) {
+      if (!expense.isCompanyFund) {
+        personalTotal += expense.amount;
+      }
     }
 
     return SizedBox(
@@ -292,15 +318,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
       child: categoryTotals.isEmpty
           ? Center(
               child: Text(
-                'No data available',
+                'No expense data available',
                 style: TextStyle(color: Colors.grey[400]),
               ),
             )
           : PieChart(
               PieChartData(
                 sections: categoryTotals.entries.map((entry) {
-                  final percentage =
-                      (entry.value / provider.getTotalExpenses()) * 100;
+                  final percentage = personalTotal > 0
+                      ? (entry.value / personalTotal) * 100
+                      : 0;
                   return PieChartSectionData(
                     value: entry.value,
                     title: '${percentage.toStringAsFixed(1)}%',
@@ -365,13 +392,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  'Paid: \$${paid.toStringAsFixed(2)}',
+                  'Paid: ₹${paid.toStringAsFixed(2)}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 Text(
                   balance > 0
-                      ? '+\$${balance.toStringAsFixed(2)}'
-                      : '-\$${balance.abs().toStringAsFixed(2)}',
+                      ? '+₹${balance.toStringAsFixed(2)}'
+                      : '-₹${balance.abs().toStringAsFixed(2)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: balance > 0 ? AppTheme.success : AppTheme.error,
                         fontWeight: FontWeight.bold,
@@ -408,7 +435,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 Text(
-                  '\$${amount.toStringAsFixed(2)}',
+                  '₹${amount.toStringAsFixed(2)}',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppTheme.primary,

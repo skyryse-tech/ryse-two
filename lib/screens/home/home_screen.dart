@@ -193,7 +193,7 @@ class DashboardScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                '\$${totalExpenses.toStringAsFixed(2)}',
+                                '₹${totalExpenses.toStringAsFixed(2)}',
                                 style: Theme.of(context)
                                     .textTheme
                                     .headlineLarge
@@ -254,7 +254,7 @@ class DashboardScreen extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      '\$${provider.companyFundBalance.toStringAsFixed(2)}',
+                                      '₹${provider.companyFundBalance.toStringAsFixed(2)}',
                                       style: Theme.of(context)
                                           .textTheme
                                           .headlineSmall
@@ -390,7 +390,7 @@ class DashboardScreen extends StatelessWidget {
               ),
             ),
             Text(
-              '\$${balance.abs().toStringAsFixed(2)}',
+              '₹${balance.abs().toStringAsFixed(2)}',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: color,
                     fontWeight: FontWeight.bold,
@@ -446,7 +446,7 @@ class DashboardScreen extends StatelessWidget {
               ),
             ),
             Text(
-              '\$${expense.amount.toStringAsFixed(2)}',
+              '₹${expense.amount.toStringAsFixed(2)}',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),

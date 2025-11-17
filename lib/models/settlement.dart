@@ -6,6 +6,7 @@ class Settlement {
   DateTime date;
   String notes;
   bool settled;
+  dynamic relatedExpenseId; // The expense ID that triggered this settlement
 
   Settlement({
     this.id,
@@ -15,6 +16,7 @@ class Settlement {
     required this.date,
     this.notes = '',
     this.settled = false,
+    this.relatedExpenseId,
   });
 
   Map<String, dynamic> toMap() {
@@ -25,6 +27,7 @@ class Settlement {
       'date': date.toIso8601String(),
       'notes': notes,
       'settled': settled,
+      'relatedExpenseId': relatedExpenseId,
     };
   }
 
@@ -37,6 +40,7 @@ class Settlement {
       date: map['date'] is String ? DateTime.parse(map['date']) : map['date'] as DateTime,
       notes: map['notes'] ?? '',
       settled: map['settled'] == true || map['settled'] == 1,
+      relatedExpenseId: map['relatedExpenseId'],
     );
   }
 

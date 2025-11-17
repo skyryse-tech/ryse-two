@@ -5,39 +5,79 @@ import '../models/settlement.dart';
 import '../models/company_fund.dart';
 
 class MongoDBHelper {
+  // MongoDB connection URI - make sure:
+  // 1. No special characters in password (if any, URL encode them)
+  // 2. IP address is whitelisted in MongoDB Atlas
+  // 3. Internet permission is enabled in Android manifest
   static const String _uri =
-      'mongodb+srv://skyryse_db_user:9Fx6BTA561Tf0o5J@cluster0.dxnv2ep.mongodb.net/?appName=Cluster0';
-  static const String _cofoundersCollection = 'cofounders';
-  static const String _expensesCollection = 'expenses';
-  static const String _settlementsCollection = 'settlements';
-  static const String _companyFundsCollection = 'company_funds';
+      'mongodb+srv://skyryse_db_user:38ZUmgCYVsVdlWra@cluster0.dxnv2ep.mongodb.net/ryse_two?retryWrites=true&w=majority';
+  static const String _cofoundersCollectionName = 'cofounders';
+  static const String _expensesCollectionName = 'expenses';
+  static const String _settlementsCollectionName = 'settlements';
+  static const String _companyFundsCollectionName = 'company_funds';
 
   MongoDBHelper._privateConstructor();
   static final MongoDBHelper instance = MongoDBHelper._privateConstructor();
 
   static Db? _database;
-  static DbCollection? _cofoundersCollection_;
-  static DbCollection? _expensesCollection_;
-  static DbCollection? _settlementsCollection_;
-  static DbCollection? _companyFundsCollection_;
 
   Future<Db> get database async {
-    _database ??= await _initDatabase();
+    if (_database == null || !_database!.isConnected) {
+      _database = await _initDatabase();
+    }
     return _database!;
   }
 
   Future<Db> _initDatabase() async {
-    final db = Db(_uri);
-    await db.open();
-    _cofoundersCollection_ = db.collection(_cofoundersCollection);
-    _expensesCollection_ = db.collection(_expensesCollection);
-    _settlementsCollection_ = db.collection(_settlementsCollection);
-    _companyFundsCollection_ = db.collection(_companyFundsCollection);
-    return db;
+    try {
+      print('🔍 Attempting to connect to MongoDB Atlas...');
+      print('Connection URI: $_uri');
+      print('📝 Using Db.create() for MongoDB Atlas connection...');
+      
+      // ⭐ IMPORTANT: Use Db.create() for MongoDB Atlas (mongodb+srv://)
+      // Documentation: https://pub.dev/packages/mongo_dart#atlas-connection
+      final db = await Db.create(_uri);
+      
+      print('📝 Database instance created, opening connection...');
+      
+      // Open connection with timeout
+      await db.open().timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          print('⏱️ Connection timeout after 30 seconds');
+          throw Exception('MongoDB connection timeout - Check internet and IP whitelist');
+        },
+      );
+      
+      print('✅ MongoDB Connected Successfully!');
+      print('🎉 Connection verified at ${DateTime.now()}');
+      
+      return db;
+    } catch (e) {
+      print('❌ MongoDB Connection Error: $e');
+      print('📋 Error Type: ${e.runtimeType}');
+      print('🔗 Connection String: $_uri');
+      print('');
+      print('💡 TROUBLESHOOTING CHECKLIST:');
+      print('   1. ✓ Using Db.create() for mongodb+srv:// URLs');
+      print('   2. ☐ Check emulator/device internet: adb shell ping 8.8.8.8');
+      print('   3. ☐ Whitelist IP in MongoDB Atlas: https://cloud.mongodb.com/');
+      print('   4. ☐ Verify username/password in connection string');
+      print('   5. ☐ Enable internet permission in AndroidManifest.xml');
+      print('   6. ☐ Check firewall/antivirus not blocking connection');
+      print('');
+      print('Stack trace: ${StackTrace.current}');
+      throw Exception('Failed to initialize MongoDB: $e');
+    }
+  }
+
+  Future<DbCollection> _getCollection(String collectionName) async {
+    final db = await database;
+    return db.collection(collectionName);
   }
 
   Future<void> closeDatabase() async {
-    if (_database != null) {
+    if (_database != null && _database!.isConnected) {
       await _database!.close();
       _database = null;
     }
@@ -46,10 +86,9 @@ class MongoDBHelper {
   // CoFounder Operations
   Future<String> insertCoFounder(CoFounder coFounder) async {
     try {
-      final collection = _cofoundersCollection_;
-      if (collection == null) return '';
+      final collection = await _getCollection(_cofoundersCollectionName);
       final map = coFounder.toMap();
-      map.remove('id'); // Remove id to let MongoDB generate it
+      map.remove('id');
       final result = await collection.insertOne(map);
       return (result.id as ObjectId).toHexString();
     } catch (e) {
@@ -59,8 +98,7 @@ class MongoDBHelper {
 
   Future<List<CoFounder>> getCoFounders() async {
     try {
-      final collection = _cofoundersCollection_;
-      if (collection == null) return [];
+      final collection = await _getCollection(_cofoundersCollectionName);
       final result = await collection.find().toList();
       return result
           .map((map) => CoFounder.fromMap({...map, 'id': (map['_id'] as ObjectId).toHexString()}))
@@ -72,8 +110,7 @@ class MongoDBHelper {
 
   Future<CoFounder?> getCoFounder(String id) async {
     try {
-      final collection = _cofoundersCollection_;
-      if (collection == null) return null;
+      final collection = await _getCollection(_cofoundersCollectionName);
       final result = await collection.findOne(where.id(ObjectId.fromHexString(id)));
       if (result == null) return null;
       return CoFounder.fromMap({...result, 'id': (result['_id'] as ObjectId).toHexString()});
@@ -84,8 +121,7 @@ class MongoDBHelper {
 
   Future<int> updateCoFounder(CoFounder coFounder) async {
     try {
-      final collection = _cofoundersCollection_;
-      if (collection == null) return 0;
+      final collection = await _getCollection(_cofoundersCollectionName);
       final map = coFounder.toMap();
       map.remove('id');
       final result = await collection.updateOne(
@@ -100,8 +136,7 @@ class MongoDBHelper {
 
   Future<int> deleteCoFounder(String id) async {
     try {
-      final collection = _cofoundersCollection_;
-      if (collection == null) return 0;
+      final collection = await _getCollection(_cofoundersCollectionName);
       final result = await collection.deleteOne(where.id(ObjectId.fromHexString(id)));
       return result.ok == 1 ? 1 : 0;
     } catch (e) {
@@ -112,8 +147,7 @@ class MongoDBHelper {
   // Expense Operations
   Future<String> insertExpense(Expense expense) async {
     try {
-      final collection = _expensesCollection_;
-      if (collection == null) return '';
+      final collection = await _getCollection(_expensesCollectionName);
       final map = expense.toMap();
       map.remove('id');
       final result = await collection.insertOne(map);
@@ -125,10 +159,8 @@ class MongoDBHelper {
 
   Future<List<Expense>> getExpenses() async {
     try {
-      final collection = _expensesCollection_;
-      if (collection == null) return [];
+      final collection = await _getCollection(_expensesCollectionName);
       final result = await collection.find().toList();
-      // Sort by date descending
       result.sort((a, b) {
         final dateA = (a['date'] as DateTime?) ?? DateTime(1900);
         final dateB = (b['date'] as DateTime?) ?? DateTime(1900);
@@ -144,10 +176,8 @@ class MongoDBHelper {
 
   Future<List<Expense>> getExpensesByPayer(String payerId) async {
     try {
-      final collection = _expensesCollection_;
-      if (collection == null) return [];
+      final collection = await _getCollection(_expensesCollectionName);
       final result = await collection.find(where.eq('paidById', payerId)).toList();
-      // Sort by date descending
       result.sort((a, b) {
         final dateA = (a['date'] as DateTime?) ?? DateTime(1900);
         final dateB = (b['date'] as DateTime?) ?? DateTime(1900);
@@ -163,8 +193,7 @@ class MongoDBHelper {
 
   Future<Expense?> getExpense(String id) async {
     try {
-      final collection = _expensesCollection_;
-      if (collection == null) return null;
+      final collection = await _getCollection(_expensesCollectionName);
       final result = await collection.findOne(where.id(ObjectId.fromHexString(id)));
       if (result == null) return null;
       return Expense.fromMap({...result, 'id': (result['_id'] as ObjectId).toHexString()});
@@ -175,8 +204,7 @@ class MongoDBHelper {
 
   Future<int> updateExpense(Expense expense) async {
     try {
-      final collection = _expensesCollection_;
-      if (collection == null) return 0;
+      final collection = await _getCollection(_expensesCollectionName);
       final map = expense.toMap();
       map.remove('id');
       final result = await collection.updateOne(
@@ -191,8 +219,7 @@ class MongoDBHelper {
 
   Future<int> deleteExpense(String id) async {
     try {
-      final collection = _expensesCollection_;
-      if (collection == null) return 0;
+      final collection = await _getCollection(_expensesCollectionName);
       final result = await collection.deleteOne(where.id(ObjectId.fromHexString(id)));
       return result.ok == 1 ? 1 : 0;
     } catch (e) {
@@ -203,8 +230,7 @@ class MongoDBHelper {
   // Settlement Operations
   Future<String> insertSettlement(Settlement settlement) async {
     try {
-      final collection = _settlementsCollection_;
-      if (collection == null) return '';
+      final collection = await _getCollection(_settlementsCollectionName);
       final map = settlement.toMap();
       map.remove('id');
       final result = await collection.insertOne(map);
@@ -216,10 +242,8 @@ class MongoDBHelper {
 
   Future<List<Settlement>> getSettlements() async {
     try {
-      final collection = _settlementsCollection_;
-      if (collection == null) return [];
+      final collection = await _getCollection(_settlementsCollectionName);
       final result = await collection.find().toList();
-      // Sort by date descending
       result.sort((a, b) {
         final dateA = (a['date'] as DateTime?) ?? DateTime(1900);
         final dateB = (b['date'] as DateTime?) ?? DateTime(1900);
@@ -235,8 +259,7 @@ class MongoDBHelper {
 
   Future<int> updateSettlement(Settlement settlement) async {
     try {
-      final collection = _settlementsCollection_;
-      if (collection == null) return 0;
+      final collection = await _getCollection(_settlementsCollectionName);
       final map = settlement.toMap();
       map.remove('id');
       final result = await collection.updateOne(
@@ -251,8 +274,7 @@ class MongoDBHelper {
 
   Future<int> deleteSettlement(String id) async {
     try {
-      final collection = _settlementsCollection_;
-      if (collection == null) return 0;
+      final collection = await _getCollection(_settlementsCollectionName);
       final result = await collection.deleteOne(where.id(ObjectId.fromHexString(id)));
       return result.ok == 1 ? 1 : 0;
     } catch (e) {
@@ -263,8 +285,7 @@ class MongoDBHelper {
   // Company Fund Operations
   Future<String> insertCompanyFund(CompanyFund fund) async {
     try {
-      final collection = _companyFundsCollection_;
-      if (collection == null) return '';
+      final collection = await _getCollection(_companyFundsCollectionName);
       final map = fund.toMap();
       map.remove('id');
       final result = await collection.insertOne(map);
@@ -276,10 +297,8 @@ class MongoDBHelper {
 
   Future<List<CompanyFund>> getCompanyFunds() async {
     try {
-      final collection = _companyFundsCollection_;
-      if (collection == null) return [];
+      final collection = await _getCollection(_companyFundsCollectionName);
       final result = await collection.find().toList();
-      // Sort by date descending
       result.sort((a, b) {
         final dateA = (a['date'] as DateTime?) ?? DateTime(1900);
         final dateB = (b['date'] as DateTime?) ?? DateTime(1900);
@@ -295,8 +314,7 @@ class MongoDBHelper {
 
   Future<int> deleteCompanyFund(String id) async {
     try {
-      final collection = _companyFundsCollection_;
-      if (collection == null) return 0;
+      final collection = await _getCollection(_companyFundsCollectionName);
       final result = await collection.deleteOne(where.id(ObjectId.fromHexString(id)));
       return result.ok == 1 ? 1 : 0;
     } catch (e) {
@@ -306,8 +324,7 @@ class MongoDBHelper {
 
   Future<double> getCompanyFundBalance() async {
     try {
-      final collection = _companyFundsCollection_;
-      if (collection == null) return 0;
+      final collection = await _getCollection(_companyFundsCollectionName);
       final result = await collection.find().toList();
       double balance = 0;
       for (var map in result) {
