@@ -43,3 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase and sensitive configuration
+google-services.json
+.env
+.env.local
+.env.*.local
+firebase_options.dart

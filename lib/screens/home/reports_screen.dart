@@ -357,7 +357,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         .where((e) => !e.isCompanyFund)
         .fold<double>(0, (sum, e) => sum + e.amount);
     
-    final progressValue = totalPersonalExpenses > 0 ? paid / totalPersonalExpenses : 0;
+    final progressValue = totalPersonalExpenses > 0 ? (paid / totalPersonalExpenses).toDouble() : 0.0;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -388,7 +388,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   ),
                   const SizedBox(height: 4),
                   LinearProgressIndicator(
-                    value: (progressValue as double).clamp(0.0, 1.0) as double?,
+                    value: progressValue.clamp(0.0, 1.0),
                     backgroundColor: AppTheme.background,
                     minHeight: 4,
                   ),

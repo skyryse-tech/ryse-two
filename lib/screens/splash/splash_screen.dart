@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'dart:math';
 import '../../theme/app_theme.dart';
+import '../../providers/expense_provider.dart';
 import 'connection_checker.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -75,7 +77,16 @@ class _SplashScreenState extends State<SplashScreen>
     });
 
     if (status.isConnected) {
-      await Future.delayed(const Duration(seconds: 2));
+      // Load all data before navigating
+      try {
+        print('🔄 Loading data in splash screen...');
+        await Provider.of<ExpenseProvider>(context, listen: false).loadAllData();
+        print('✅ Data loaded in splash screen');
+      } catch (e) {
+        print('❌ Error loading data in splash screen: $e');
+      }
+      
+      await Future.delayed(const Duration(milliseconds: 500));
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/home');
       }

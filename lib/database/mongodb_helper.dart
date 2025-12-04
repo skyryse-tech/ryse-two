@@ -15,6 +15,7 @@ class MongoDBHelper {
   static const String _expensesCollectionName = 'expenses';
   static const String _settlementsCollectionName = 'settlements';
   static const String _companyFundsCollectionName = 'company_funds';
+  static const String _deviceTokensCollectionName = 'device_tokens';
 
   MongoDBHelper._privateConstructor();
   static final MongoDBHelper instance = MongoDBHelper._privateConstructor();
@@ -100,10 +101,13 @@ class MongoDBHelper {
     try {
       final collection = await _getCollection(_cofoundersCollectionName);
       final result = await collection.find().toList();
-      return result
+      final cofounders = result
           .map((map) => CoFounder.fromMap({...map, 'id': (map['_id'] as ObjectId).toHexString()}))
           .toList();
+      print('📋 Loaded ${cofounders.length} cofounders from database');
+      return cofounders;
     } catch (e) {
+      print('❌ Error loading cofounders: $e');
       return [];
     }
   }
@@ -150,9 +154,13 @@ class MongoDBHelper {
       final collection = await _getCollection(_expensesCollectionName);
       final map = expense.toMap();
       map.remove('id');
+      print('💾 Inserting expense: ${map['description']} - ₹${map['amount']}');
       final result = await collection.insertOne(map);
-      return (result.id as ObjectId).toHexString();
+      final hexId = (result.id as ObjectId).toHexString();
+      print('✅ Expense inserted with ID: $hexId');
+      return hexId;
     } catch (e) {
+      print('❌ Error inserting expense: $e');
       return '';
     }
   }
@@ -161,15 +169,30 @@ class MongoDBHelper {
     try {
       final collection = await _getCollection(_expensesCollectionName);
       final result = await collection.find().toList();
-      result.sort((a, b) {
-        final dateA = (a['date'] as DateTime?) ?? DateTime(1900);
-        final dateB = (b['date'] as DateTime?) ?? DateTime(1900);
-        return dateB.compareTo(dateA);
-      });
-      return result
-          .map((map) => Expense.fromMap({...map, 'id': (map['_id'] as ObjectId).toHexString()}))
-          .toList();
+      
+      // Parse expenses individually to catch parsing errors
+      final expenses = <Expense>[];
+      for (var map in result) {
+        try {
+          final expense = Expense.fromMap({...map, 'id': (map['_id'] as ObjectId).toHexString()});
+          expenses.add(expense);
+        } catch (e) {
+          print('❌ Error parsing individual expense: $e');
+          print('   Expense data: $map');
+        }
+      }
+      
+      // Sort by date (newest first)
+      expenses.sort((a, b) => b.date.compareTo(a.date));
+      
+      print('📋 Loaded ${expenses.length} expenses from database');
+      if (expenses.isNotEmpty) {
+        print('   First: ${expenses.first.description} - ₹${expenses.first.amount}');
+        print('   Last: ${expenses.last.description} - ₹${expenses.last.amount}');
+      }
+      return expenses;
     } catch (e) {
+      print('❌ Error loading expenses: $e');
       return [];
     }
   }
@@ -249,10 +272,13 @@ class MongoDBHelper {
         final dateB = (b['date'] as DateTime?) ?? DateTime(1900);
         return dateB.compareTo(dateA);
       });
-      return result
+      final settlements = result
           .map((map) => Settlement.fromMap({...map, 'id': (map['_id'] as ObjectId).toHexString()}))
           .toList();
+      print('📋 Loaded ${settlements.length} settlements from database');
+      return settlements;
     } catch (e) {
+      print('❌ Error loading settlements: $e');
       return [];
     }
   }
@@ -355,6 +381,87 @@ class MongoDBHelper {
       }
       return balance;
     } catch (e) {
+      return 0;
+    }
+  }
+
+  // Device Token Operations for FCM
+  /// Save or update device token for push notifications
+  Future<void> saveDeviceToken(String token) async {
+    try {
+      final collection = await _getCollection(_deviceTokensCollectionName);
+      
+      // Check if token already exists
+      final existing = await collection.findOne(where.eq('token', token));
+      
+      if (existing != null) {
+        // Update last seen timestamp
+        await collection.updateOne(
+          where.eq('token', token),
+          modify.set('lastSeen', DateTime.now()),
+        );
+        print('🔄 Updated existing token timestamp');
+      } else {
+        // Insert new token
+        await collection.insertOne({
+          'token': token,
+          'createdAt': DateTime.now(),
+          'lastSeen': DateTime.now(),
+        });
+        print('✅ Saved new device token');
+      }
+    } catch (e) {
+      print('❌ Error saving device token: $e');
+    }
+  }
+
+  /// Get all active device tokens for broadcasting notifications
+  Future<List<String>> getAllDeviceTokens() async {
+    try {
+      final collection = await _getCollection(_deviceTokensCollectionName);
+      final result = await collection.find().toList();
+      
+      final tokens = result
+          .map((doc) => doc['token'] as String?)
+          .where((token) => token != null && token.isNotEmpty)
+          .cast<String>()
+          .toList();
+      
+      print('📱 Retrieved ${tokens.length} device tokens from database');
+      return tokens;
+    } catch (e) {
+      print('❌ Error getting device tokens: $e');
+      return [];
+    }
+  }
+
+  /// Remove invalid or expired device token
+  Future<void> removeDeviceToken(String token) async {
+    try {
+      final collection = await _getCollection(_deviceTokensCollectionName);
+      await collection.deleteOne(where.eq('token', token));
+      print('🗑️ Removed device token from database');
+    } catch (e) {
+      print('❌ Error removing device token: $e');
+    }
+  }
+
+  /// Clean up old device tokens (optional - run periodically)
+  /// Removes tokens not seen in the last 30 days
+  Future<int> cleanupOldTokens() async {
+    try {
+      final collection = await _getCollection(_deviceTokensCollectionName);
+      final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+      
+      final result = await collection.deleteMany(
+        where.lt('lastSeen', thirtyDaysAgo),
+      );
+      
+      final count = result.nRemoved;
+      print('🧹 Cleaned up $count old device tokens');
+      return count;
+    } catch (e) {
+      print('❌ Error cleaning up tokens: $e');
       return 0;
     }
   }

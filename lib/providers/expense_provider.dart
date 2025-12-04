@@ -4,6 +4,7 @@ import '../models/expense.dart';
 import '../models/settlement.dart';
 import '../models/company_fund.dart';
 import '../database/mongodb_helper.dart';
+import '../services/notification_helper.dart';
 
 class ExpenseProvider extends ChangeNotifier {
   final MongoDBHelper _databaseHelper = MongoDBHelper.instance;
@@ -23,12 +24,14 @@ class ExpenseProvider extends ChangeNotifier {
   // Load all data
   Future<void> loadAllData() async {
     try {
+      print('🔄 Loading all data from MongoDB...');
       await loadCoFounders();
       await loadExpenses();
       await loadSettlements();
       await loadCompanyFunds();
+      print('✅ All data loaded successfully');
     } catch (e) {
-      // Error loading data from MongoDB
+      print('❌ Error loading data from MongoDB: $e');
     }
   }
 
@@ -36,9 +39,10 @@ class ExpenseProvider extends ChangeNotifier {
   Future<void> loadCoFounders() async {
     try {
       _coFounders = await _databaseHelper.getCoFounders();
+      print('👥 Loaded ${_coFounders.length} cofounders');
       notifyListeners();
     } catch (e) {
-      // Error loading cofounders
+      print('❌ Error loading cofounders: $e');
     }
   }
 
@@ -48,6 +52,17 @@ class ExpenseProvider extends ChangeNotifier {
       coFounder.id = id;
       _coFounders.add(coFounder);
       notifyListeners();
+      
+      // Send notification to all devices
+      try {
+        await NotificationHelper().sendCofounderNotification(
+          action: 'added',
+          name: coFounder.name,
+        );
+      } catch (e) {
+        print('⚠️ Failed to send notification: $e');
+      }
+      
       return true;
     } catch (e) {
       return false;
@@ -63,6 +78,17 @@ class ExpenseProvider extends ChangeNotifier {
         _coFounders[index] = coFounder;
       }
       notifyListeners();
+      
+      // Send notification to all devices
+      try {
+        await NotificationHelper().sendCofounderNotification(
+          action: 'updated',
+          name: coFounder.name,
+        );
+      } catch (e) {
+        print('⚠️ Failed to send notification: $e');
+      }
+      
       return true;
     } catch (e) {
       return false;
@@ -71,9 +97,23 @@ class ExpenseProvider extends ChangeNotifier {
 
   Future<bool> deleteCoFounder(dynamic id) async {
     try {
+      final cofounder = getCoFounderById(id);
       await _databaseHelper.deleteCoFounder(id.toString());
       _coFounders.removeWhere((cf) => cf.id == id);
       notifyListeners();
+      
+      // Send notification to all devices
+      if (cofounder != null) {
+        try {
+          await NotificationHelper().sendCofounderNotification(
+            action: 'deleted',
+            name: cofounder.name,
+          );
+        } catch (e) {
+          print('⚠️ Failed to send notification: $e');
+        }
+      }
+      
       return true;
     } catch (e) {
       return false;
@@ -92,17 +132,30 @@ class ExpenseProvider extends ChangeNotifier {
   Future<void> loadExpenses() async {
     try {
       _expenses = await _databaseHelper.getExpenses();
+      print('💸 Loaded ${_expenses.length} expenses');
+      if (_expenses.isNotEmpty) {
+        print('   First expense: ${_expenses.first.description} - ₹${_expenses.first.amount}');
+        print('   Last expense: ${_expenses.last.description} - ₹${_expenses.last.amount}');
+      }
       notifyListeners();
     } catch (e) {
-      // Error loading expenses
+      print('❌ Error loading expenses: $e');
     }
   }
 
   Future<bool> addExpense(Expense expense) async {
     try {
+      print('➕ Adding new expense: ${expense.description} - ₹${expense.amount}');
       String id = await _databaseHelper.insertExpense(expense);
+      
+      if (id.isEmpty) {
+        print('❌ Failed to insert expense - empty ID returned');
+        return false;
+      }
+      
       expense.id = id;
       _expenses.add(expense);
+      print('✅ Expense added to local state');
       notifyListeners();
       await calculateSettlements();
       
@@ -110,8 +163,29 @@ class ExpenseProvider extends ChangeNotifier {
       if (expense.isCompanyFund) {
         await _loadCompanyFundBalance();
       }
+      
+      // Send notification to all devices
+      final payer = getCoFounderById(expense.paidById);
+      if (payer != null) {
+        try {
+          print('📤 Sending notification for expense...');
+          await NotificationHelper().sendExpenseNotification(
+            action: 'added',
+            description: expense.description,
+            amount: expense.amount,
+            paidBy: payer.name,
+          );
+          print('✅ Notification sent successfully');
+        } catch (e) {
+          print('⚠️ Failed to send notification: $e');
+        }
+      } else {
+        print('⚠️ Could not find payer for notification');
+      }
+      
       return true;
     } catch (e) {
+      print('❌ Error adding expense: $e');
       return false;
     }
   }
@@ -130,6 +204,22 @@ class ExpenseProvider extends ChangeNotifier {
       }
       notifyListeners();
       await calculateSettlements();
+      
+      // Send notification to all devices
+      final payer = getCoFounderById(expense.paidById);
+      if (payer != null) {
+        try {
+          await NotificationHelper().sendExpenseNotification(
+            action: 'updated',
+            description: expense.description,
+            amount: expense.amount,
+            paidBy: payer.name,
+          );
+        } catch (e) {
+          print('⚠️ Failed to send notification: $e');
+        }
+      }
+      
       return true;
     } catch (e) {
       return false;
@@ -138,10 +228,28 @@ class ExpenseProvider extends ChangeNotifier {
 
   Future<bool> deleteExpense(dynamic id) async {
     try {
+      final expense = _expenses.firstWhere((e) => e.id == id);
+      final payer = getCoFounderById(expense.paidById);
+      
       await _databaseHelper.deleteExpense(id.toString());
       _expenses.removeWhere((e) => e.id == id);
       notifyListeners();
       await calculateSettlements();
+      
+      // Send notification to all devices
+      if (payer != null) {
+        try {
+          await NotificationHelper().sendExpenseNotification(
+            action: 'deleted',
+            description: expense.description,
+            amount: expense.amount,
+            paidBy: payer.name,
+          );
+        } catch (e) {
+          print('⚠️ Failed to send notification: $e');
+        }
+      }
+      
       return true;
     } catch (e) {
       return false;
@@ -162,9 +270,15 @@ class ExpenseProvider extends ChangeNotifier {
   Future<void> loadSettlements() async {
     try {
       _settlements = await _databaseHelper.getSettlements();
+      print('🤝 Loaded ${_settlements.length} settlements from database');
+      for (var settlement in _settlements) {
+        final from = getCoFounderById(settlement.fromId);
+        final to = getCoFounderById(settlement.toId);
+        print('   ${from?.name ?? "Unknown"} → ${to?.name ?? "Unknown"}: ₹${settlement.amount} (${settlement.settled ? "Settled" : "Pending"})');
+      }
       notifyListeners();
     } catch (e) {
-      // Error loading settlements
+      print('❌ Error loading settlements: $e');
     }
   }
 
@@ -227,6 +341,23 @@ class ExpenseProvider extends ChangeNotifier {
       _settlements.add(settlement);
       // Recalculate to update UI with new balances
       notifyListeners();
+      
+      // Send notification to all devices
+      final fromPerson = getCoFounderById(settlement.fromId);
+      final toPerson = getCoFounderById(settlement.toId);
+      if (fromPerson != null && toPerson != null) {
+        try {
+          await NotificationHelper().sendSettlementNotification(
+            action: 'recorded',
+            fromName: fromPerson.name,
+            toName: toPerson.name,
+            amount: settlement.amount,
+          );
+        } catch (e) {
+          print('⚠️ Failed to send notification: $e');
+        }
+      }
+      
       return true;
     } catch (e) {
       return false;
@@ -277,6 +408,18 @@ class ExpenseProvider extends ChangeNotifier {
         _companyFundBalance = await _databaseHelper.getCompanyFundBalance();
         print('💰 Updated company fund balance: ₹$_companyFundBalance');
         notifyListeners();
+        
+        // Send notification to all devices
+        try {
+          await NotificationHelper().sendCompanyFundNotification(
+            action: fund.type == 'add' ? 'added' : 'deducted',
+            description: fund.description,
+            amount: fund.amount,
+          );
+        } catch (e) {
+          print('⚠️ Failed to send notification: $e');
+        }
+        
         return true;
       }
       print('❌ Failed to insert company fund - empty ID returned');

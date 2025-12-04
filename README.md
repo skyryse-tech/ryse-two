@@ -1,10 +1,10 @@
 # Ryse Two - Professional Expense Management System
 
-A comprehensive Flutter application designed for IT startup co-founders to manage shared expenses, track contributions, calculate settlements, and monitor spending patterns with real-time analytics and professional reporting.
+A comprehensive Flutter application designed for IT startup co-founders to manage shared expenses, track contributions, calculate settlements, and monitor spending patterns with real-time analytics, professional reporting, and **real-time push notifications**.
 
 ## Overview
 
-Ryse Two automates the complex process of expense splitting between multiple co-founders with support for both personal and company fund expenses. The system intelligently calculates individual balances, identifies settlement requirements, and provides detailed financial analytics for informed decision-making.
+Ryse Two automates the complex process of expense splitting between multiple co-founders with support for both personal and company fund expenses. The system intelligently calculates individual balances, identifies settlement requirements, and provides detailed financial analytics for informed decision-making. **All data changes are instantly notified to all team members via push notifications, even when the app is closed.**
 
 ## Core Features
 
@@ -47,6 +47,18 @@ Ryse Two automates the complex process of expense splitting between multiple co-
 - Modern visual hierarchy and spacing
 - Professional typography using Google Fonts
 - Color-coded visualizations for quick insights
+
+### 🔔 Real-Time Push Notifications (NEW!)
+- Instant notifications for all data changes
+- Works even when app is closed
+- Expense updates (add, edit, delete)
+- Cofounder updates (add, edit, remove)
+- Settlement recordings
+- Company fund changes
+- Professional notification UI with sound and vibration
+- Powered by Firebase Cloud Messaging API V1 (OAuth 2.0)
+- Secure service account authentication
+- No backend server required - uses Firebase + MongoDB only
 
 ## Technical Architecture
 
@@ -405,17 +417,54 @@ To backup data, backup the device or application directory. No cloud synchroniza
 - Ensure ExpenseProvider is properly initialized in main.dart
 - Check Consumer widgets are properly wrapped around state-dependent UI
 
+## 🔔 Push Notifications Setup
+
+This app includes real-time push notifications for all data changes. To enable notifications:
+
+### Quick Setup (5 minutes)
+1. Create Firebase project and add Android app
+2. Download `google-services.json` → place in `android/app/`
+3. Generate Service Account credentials from Firebase Console
+4. Create `.env` file with:
+   ```env
+   FCM_PROJECT_ID=your-project-id
+   FCM_PRIVATE_KEY=your-private-key
+   FCM_CLIENT_EMAIL=your-client-email
+   ```
+5. Run `flutter pub get` and launch app
+
+### Detailed Documentation
+- 📖 **Full Setup Guide**: [FIREBASE_SETUP.md](FIREBASE_SETUP.md)
+- Uses **FCM API V1** with OAuth 2.0 authentication
+
+### What Gets Notified?
+- ✅ Expenses (add, update, delete)
+- ✅ Cofounders (add, update, delete)  
+- ✅ Company Funds (add, deduct)
+- ✅ Settlements (record)
+
+**Notifications work even when app is closed!** 🎯
+
 ## Version History
 
-**v1.0.0** (Current)
+**v1.1.0** (Current - December 2025)
+- ⭐ **NEW**: Real-time push notifications via Firebase FCM API V1
+- ⭐ **NEW**: OAuth 2.0 authentication with service accounts
+- ⭐ **NEW**: Background/foreground notification support
+- ⭐ **NEW**: MongoDB-based device token management
+- ⭐ **NEW**: Professional notification UI with sound & vibration
 - Full expense tracking system
 - Multi-member settlement calculations
 - Advanced analytics and reporting
 - Professional UI with Material Design 3
-- SQLite persistence layer
+- MongoDB persistence layer
 - Company fund tracking capability
 - Co-founder profile management with financial details
 - Cross-platform support (Android, iOS, Web, Windows, Linux, macOS)
+
+**v1.0.0** (Initial Release)
+- Basic expense tracking and settlement system
+- SQLite persistence (migrated to MongoDB in v1.1.0)
 
 ## License
 
