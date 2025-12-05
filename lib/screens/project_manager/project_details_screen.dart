@@ -310,40 +310,42 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen>
   Widget _buildFeatureCard(ProjectFeature feature, Color projectColor) {
     final statusColor = ProjectManagerTheme.getStatusColor(feature.status);
     
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: ProjectManagerTheme.cardGradient,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: statusColor.withOpacity(0.3),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  feature.name,
-                  style: ProjectManagerTheme.subtitleText.copyWith(fontSize: 16),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  feature.status,
-                  style: ProjectManagerTheme.captionText.copyWith(color: statusColor),
-                ),
-              ),
-            ],
+    return GestureDetector(
+      onTap: () => _showEditFeatureStatusDialog(feature),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: ProjectManagerTheme.cardGradient,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: statusColor.withOpacity(0.3),
           ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    feature.name,
+                    style: ProjectManagerTheme.subtitleText.copyWith(fontSize: 16),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    feature.status,
+                    style: ProjectManagerTheme.captionText.copyWith(color: statusColor),
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 8),
           Text(
             feature.description,
@@ -370,6 +372,81 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen>
             ],
           ),
         ],
+      ),
+      ),
+    );
+  }
+
+  void _showEditFeatureStatusDialog(ProjectFeature feature) {
+    final statuses = ['To Do', 'In Progress', 'In Review', 'Completed', 'Blocked'];
+    
+    showDialog(
+      context: context,
+      builder: (context) => Theme(
+        data: ProjectManagerTheme.darkTheme,
+        child: AlertDialog(
+          backgroundColor: ProjectManagerTheme.cosmicBlue,
+          title: Text(
+            'Update Feature Status',
+            style: ProjectManagerTheme.titleText,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                feature.name,
+                style: ProjectManagerTheme.subtitleText,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Current Status: ${feature.status}',
+                style: ProjectManagerTheme.bodyText,
+              ),
+              const SizedBox(height: 16),
+              ...statuses.map((status) {
+                final statusColor = ProjectManagerTheme.getStatusColor(status);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (status != feature.status) {
+                        final updatedFeature = ProjectFeature(
+                          id: feature.id,
+                          projectId: feature.projectId,
+                          name: feature.name,
+                          description: feature.description,
+                          status: status,
+                          priority: feature.priority,
+                          estimatedHours: feature.estimatedHours,
+                          assignedTo: feature.assignedTo,
+                          dependencies: feature.dependencies,
+                          createdAt: feature.createdAt,
+                        );
+                        
+                        Provider.of<ProjectProvider>(context, listen: false)
+                            .updateFeature(updatedFeature);
+                      }
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: statusColor.withOpacity(0.2),
+                      foregroundColor: statusColor,
+                      minimumSize: const Size(double.infinity, 48),
+                    ),
+                    child: Text(status),
+                  ),
+                );
+              }).toList(),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('CANCEL'),
+            ),
+          ],
+        ),
       ),
     );
   }

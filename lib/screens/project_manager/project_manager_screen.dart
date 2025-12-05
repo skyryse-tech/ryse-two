@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:ui';
+import 'dart:math';
 import '../../providers/project_provider.dart';
 import '../../theme/project_manager_theme.dart';
 import 'futuristic_page_route.dart';
@@ -64,8 +64,8 @@ class _ProjectManagerScreenState extends State<ProjectManagerScreen>
           ),
           child: Stack(
             children: [
-              // Animated background stars
-              ...List.generate(50, (index) => _buildStar(index)),
+              // Lightweight static star background
+              const _StaticStarBackground(),
               
               // Main content
               SafeArea(
@@ -259,47 +259,6 @@ class _ProjectManagerScreenState extends State<ProjectManagerScreen>
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildStar(int index) {
-    final random = index * 137.508; // Golden angle for distribution
-    final x = (random % 100) / 100;
-    final y = ((random * 1.618) % 100) / 100;
-    final size = 1.0 + (index % 3);
-    final opacity = 0.3 + ((index % 5) / 10);
-
-    return Positioned(
-      left: MediaQuery.of(context).size.width * x,
-      top: MediaQuery.of(context).size.height * y,
-      child: TweenAnimationBuilder<double>(
-        duration: Duration(milliseconds: 1500 + (index % 500)),
-        tween: Tween<double>(begin: 0.0, end: 1.0),
-        curve: Curves.linear,
-        builder: (context, double value, _) {
-          return Opacity(
-            opacity: opacity * (0.5 + 0.5 * value),
-            child: Container(
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                color: ProjectManagerTheme.starLight,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: ProjectManagerTheme.starLight.withOpacity(0.5),
-                    blurRadius: 4,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-        onEnd: () {
-          if (mounted) setState(() {});
-        },
       ),
     );
   }
@@ -709,3 +668,70 @@ class _ProjectManagerScreenState extends State<ProjectManagerScreen>
     );
   }
 }
+
+/// Lightweight static star background - renders once on init
+class _StaticStarBackground extends StatelessWidget {
+  const _StaticStarBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _StaticStarPainter(),
+      child: Container(),
+    );
+  }
+}
+
+class _StaticStarPainter extends CustomPainter {
+  final List<_StarData> stars = _generateStars();
+
+  static List<_StarData> _generateStars() {
+    final stars = <_StarData>[];
+    final random = Random(42); // Fixed seed for consistency
+    
+    for (int i = 0; i < 40; i++) {
+      stars.add(
+        _StarData(
+          x: random.nextDouble(),
+          y: random.nextDouble(),
+          size: 1.0 + (random.nextDouble() * 2),
+          opacity: 0.2 + (random.nextDouble() * 0.6),
+        ),
+      );
+    }
+    return stars;
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.fill;
+
+    for (final star in stars) {
+      paint.color = const Color(0xFFF0F0FF).withOpacity(star.opacity);
+      canvas.drawCircle(
+        Offset(star.x * size.width, star.y * size.height),
+        star.size,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_StaticStarPainter oldDelegate) => false; // Never repaint
+}
+
+class _StarData {
+  final double x;
+  final double y;
+  final double size;
+  final double opacity;
+
+  _StarData({
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.opacity,
+  });
+}
+

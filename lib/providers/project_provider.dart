@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mongo_dart/mongo_dart.dart' as mongo;
 import '../models/project.dart';
 import '../database/mongodb_helper.dart';
+import '../services/notification_helper.dart';
 
 class ProjectProvider extends ChangeNotifier {
   List<Project> _projects = [];
@@ -104,6 +105,16 @@ class ProjectProvider extends ChangeNotifier {
       final featuresCollection = db.collection(MongoDBHelper.projectFeaturesCollectionName);
       final featuresData = await featuresCollection.find().toList();
       _features = featuresData.map((data) => ProjectFeature.fromMap(data)).toList();
+      
+      // Recalculate progress for all projects
+      for (var project in _projects) {
+        final projectFeatures = _features.where((f) => f.projectId == project.id).toList();
+        project.totalFeatures = projectFeatures.length;
+        project.completedFeatures = projectFeatures.where((f) => f.status == 'Completed').length;
+        project.progressPercentage = project.totalFeatures > 0 
+            ? (project.completedFeatures / project.totalFeatures) * 100 
+            : 0.0;
+      }
       
       // Load research notes
       final researchCollection = db.collection(MongoDBHelper.researchNotesCollectionName);
@@ -213,21 +224,18 @@ class ProjectProvider extends ChangeNotifier {
       final result = await collection.insertOne(feature.toMap());
       feature.id = (result.id as mongo.ObjectId).toHexString();
       
-      _features.add(feature);
+      _features.insert(0, feature);
       
       // Update project feature count
       final project = _projects.firstWhere((p) => p.id == feature.projectId);
       project.totalFeatures++;
+      if (feature.status == 'Completed') {
+        project.completedFeatures++;
+      }
+      if (project.totalFeatures > 0) {
+        project.progressPercentage = (project.completedFeatures / project.totalFeatures) * 100;
+      }
       await updateProject(project);
-      
-      // Add timeline entry
-      await addTimelineEvent(
-        projectId: feature.projectId,
-        eventType: 'Updated',
-        title: 'Feature Added',
-        description: 'Feature "${feature.name}" was added',
-        performedBy: feature.assignedTo,
-      );
       
       notifyListeners();
     } catch (e) {
@@ -257,11 +265,11 @@ class ProjectProvider extends ChangeNotifier {
       }
       
       // Update project completion count
+      final project = _projects.firstWhere((p) => p.id == feature.projectId);
+      
       if (!wasCompleted && isNowCompleted) {
-        final project = _projects.firstWhere((p) => p.id == feature.projectId);
+        // Feature marked as completed
         project.completedFeatures++;
-        project.progressPercentage = (project.completedFeatures / project.totalFeatures) * 100;
-        await updateProject(project);
         
         // Add timeline entry
         await addTimelineEvent(
@@ -271,7 +279,29 @@ class ProjectProvider extends ChangeNotifier {
           description: 'Feature "${feature.name}" was completed',
           performedBy: feature.assignedTo,
         );
+        
+        // Send notification for feature completion
+        await NotificationHelper().sendToAllDevices(
+          title: '✅ Feature Completed',
+          body: '"${feature.name}" completed in "${project.name}" by ${feature.assignedTo}',
+          data: {
+            'type': 'feature_completed',
+            'projectId': feature.projectId,
+            'featureId': feature.id,
+            'featureName': feature.name,
+            'completedBy': feature.assignedTo,
+          },
+        );
+      } else if (wasCompleted && !isNowCompleted) {
+        // Feature was completed but now changed to another status
+        project.completedFeatures--;
       }
+      
+      // Recalculate progress
+      project.progressPercentage = project.totalFeatures > 0
+          ? (project.completedFeatures / project.totalFeatures) * 100
+          : 0.0;
+      await updateProject(project);
       
       notifyListeners();
     } catch (e) {
@@ -323,6 +353,9 @@ class ProjectProvider extends ChangeNotifier {
       
       _researchNotes.add(note);
       
+      // Determine if it's overall or project-specific research
+      final isOverallResearch = note.projectId == 'overall';
+      
       // Add timeline entry
       await addTimelineEvent(
         projectId: note.projectId,
@@ -331,6 +364,46 @@ class ProjectProvider extends ChangeNotifier {
         description: '${note.authorName} added research: "${note.title}"',
         performedBy: note.authorName,
       );
+      
+      // Send notification
+      if (isOverallResearch) {
+        // Overall research notification
+        await NotificationHelper().sendToAllDevices(
+          title: '🔬 New Overall Research',
+          body: '${note.authorName} added: "${note.title}"',
+          data: {
+            'type': 'overall_research',
+            'researchId': note.id ?? '',
+            'authorName': note.authorName,
+          },
+        );
+      } else {
+        // Project-specific research notification
+        final project = _projects.firstWhere(
+          (p) => p.id == note.projectId,
+          orElse: () => Project(
+            name: 'Unknown Project',
+            description: '',
+            projectType: '',
+            createdAt: DateTime.now(),
+            status: '',
+            techStack: '',
+            assignedTo: '',
+            themeColor: '#00F0FF',
+          ),
+        );
+        
+        await NotificationHelper().sendToAllDevices(
+          title: '📝 New Project Research',
+          body: '${note.authorName} added research for "${project.name}": "${note.title}"',
+          data: {
+            'type': 'project_research',
+            'projectId': note.projectId,
+            'researchId': note.id ?? '',
+            'authorName': note.authorName,
+          },
+        );
+      }
       
       notifyListeners();
     } catch (e) {
