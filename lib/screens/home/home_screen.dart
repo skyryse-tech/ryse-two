@@ -7,6 +7,7 @@ import '../../theme/app_theme.dart';
 import '../../models/cofounder.dart';
 import 'expense_screen.dart';
 import 'cofounder_screen.dart';
+import '../project_manager/project_manager_screen.dart';
 import 'company_fund_screen.dart';
 import 'reports_screen.dart';
 import 'settlements_screen.dart';
@@ -33,15 +34,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkTab = _selectedIndex == 2; // Project Manager tab
+    
     return Scaffold(
       body: _buildBody(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),
         type: BottomNavigationBarType.fixed,
-        backgroundColor: AppTheme.surface,
-        selectedItemColor: AppTheme.primary,
-        unselectedItemColor: AppTheme.textSecondary,
+        backgroundColor: isDarkTab ? const Color(0xFF0A0E27) : AppTheme.surface,
+        selectedItemColor: isDarkTab ? const Color(0xFF00F0FF) : AppTheme.primary,
+        unselectedItemColor: isDarkTab ? const Color(0xFF64748B) : AppTheme.textSecondary,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -52,8 +55,8 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Expenses',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Co-founders',
+            icon: Icon(Icons.satellite_alt_rounded),
+            label: 'Project Manager',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.analytics),
@@ -69,21 +72,37 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBody() {
+    // Animate transitions when switching to/from Project Manager
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 400),
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: child,
+        );
+      },
+      child: _getCurrentScreen(),
+    );
+  }
+
+  Widget _getCurrentScreen() {
     switch (_selectedIndex) {
       case 0:
         return DashboardScreen(
+          key: const ValueKey('dashboard'),
           onViewAll: () => setState(() => _selectedIndex = 1),
         );
       case 1:
-        return const ExpenseScreen();
+        return const ExpenseScreen(key: ValueKey('expenses'));
       case 2:
-        return const CoFounderScreen();
+        return const ProjectManagerScreen(key: ValueKey('project'));
       case 3:
-        return const ReportsScreen();
+        return const ReportsScreen(key: ValueKey('reports'));
       case 4:
-        return const SettlementsScreen();
+        return const SettlementsScreen(key: ValueKey('settlements'));
       default:
         return DashboardScreen(
+          key: const ValueKey('dashboard'),
           onViewAll: () => setState(() => _selectedIndex = 1),
         );
     }
@@ -291,9 +310,25 @@ class DashboardScreen extends StatelessWidget {
                     const SizedBox(height: 24),
                     
                     // Co-founders Balance
-                    Text(
-                      'Co-founders Balance',
-                      style: Theme.of(context).textTheme.titleMedium,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Co-founders Balance',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CoFounderScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text('View All'),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     ...coFounders.map((coFounder) {

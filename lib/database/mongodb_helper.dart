@@ -1,3 +1,4 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mongo_dart/mongo_dart.dart';
 import '../models/cofounder.dart';
 import '../models/expense.dart';
@@ -5,17 +6,22 @@ import '../models/settlement.dart';
 import '../models/company_fund.dart';
 
 class MongoDBHelper {
-  // MongoDB connection URI - make sure:
+  // MongoDB connection URI - comes from .env (MONGODB_URI)
+  // Make sure:
   // 1. No special characters in password (if any, URL encode them)
   // 2. IP address is whitelisted in MongoDB Atlas
   // 3. Internet permission is enabled in Android manifest
-  static const String _uri =
-      'mongodb+srv://skyryse_db_user:38ZUmgCYVsVdlWra@cluster0.dxnv2ep.mongodb.net/ryse_two?retryWrites=true&w=majority';
+  static String get _uri => dotenv.env['MONGODB_URI'] ?? '';
   static const String _cofoundersCollectionName = 'cofounders';
   static const String _expensesCollectionName = 'expenses';
   static const String _settlementsCollectionName = 'settlements';
   static const String _companyFundsCollectionName = 'company_funds';
   static const String _deviceTokensCollectionName = 'device_tokens';
+  // Project Manager Collections (shared schema)
+  static const String projectsCollectionName = 'projects';
+  static const String projectFeaturesCollectionName = 'project_features';
+  static const String researchNotesCollectionName = 'research_notes';
+  static const String projectTimelineCollectionName = 'project_timeline';
 
   MongoDBHelper._privateConstructor();
   static final MongoDBHelper instance = MongoDBHelper._privateConstructor();
@@ -31,6 +37,9 @@ class MongoDBHelper {
 
   Future<Db> _initDatabase() async {
     try {
+      if (_uri.isEmpty) {
+        throw Exception('MONGODB_URI is not set in .env');
+      }
       print('🔍 Attempting to connect to MongoDB Atlas...');
       print('Connection URI: $_uri');
       print('📝 Using Db.create() for MongoDB Atlas connection...');
