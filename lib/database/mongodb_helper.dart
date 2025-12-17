@@ -4,6 +4,7 @@ import '../models/cofounder.dart';
 import '../models/expense.dart';
 import '../models/settlement.dart';
 import '../models/company_fund.dart';
+import '../models/vault_entry.dart';
 
 class MongoDBHelper {
   // MongoDB connection URI - comes from .env (MONGODB_URI)
@@ -22,6 +23,7 @@ class MongoDBHelper {
   static const String projectFeaturesCollectionName = 'project_features';
   static const String researchNotesCollectionName = 'research_notes';
   static const String projectTimelineCollectionName = 'project_timeline';
+  static const String vaultEntriesCollectionName = 'vault_entries';
 
   MongoDBHelper._privateConstructor();
   static final MongoDBHelper instance = MongoDBHelper._privateConstructor();
@@ -471,6 +473,67 @@ class MongoDBHelper {
       return count;
     } catch (e) {
       print('❌ Error cleaning up tokens: $e');
+      return 0;
+    }
+  }
+
+  // Vault Operations (encrypted)
+  Future<String> insertVaultEntry(EncryptedVaultRecord record) async {
+    try {
+      final collection = await _getCollection(vaultEntriesCollectionName);
+      final payload = record.toMap();
+      payload.remove('id');
+      final result = await collection.insertOne(payload);
+      return (result.id as ObjectId).toHexString();
+    } catch (e) {
+      print('❌ Error inserting vault entry: $e');
+      return '';
+    }
+  }
+
+  Future<List<EncryptedVaultRecord>> getVaultEntries() async {
+    try {
+      final collection = await _getCollection(vaultEntriesCollectionName);
+      final result = await collection.find().toList();
+      result.sort((a, b) {
+        final dateA = a['updatedAt'] is DateTime
+            ? a['updatedAt'] as DateTime
+            : DateTime.tryParse(a['updatedAt']?.toString() ?? '') ?? DateTime(1900);
+        final dateB = b['updatedAt'] is DateTime
+            ? b['updatedAt'] as DateTime
+            : DateTime.tryParse(b['updatedAt']?.toString() ?? '') ?? DateTime(1900);
+        return dateB.compareTo(dateA);
+      });
+      return result.map((map) => EncryptedVaultRecord.fromMap(map)).toList();
+    } catch (e) {
+      print('❌ Error loading vault entries: $e');
+      return [];
+    }
+  }
+
+  Future<int> updateVaultEntry(EncryptedVaultRecord record) async {
+    try {
+      final collection = await _getCollection(vaultEntriesCollectionName);
+      final payload = record.toMap();
+      payload.remove('id');
+      final result = await collection.updateOne(
+        where.id(ObjectId.fromHexString(record.id!)),
+        {'\$set': payload},
+      );
+      return result.nModified;
+    } catch (e) {
+      print('❌ Error updating vault entry: $e');
+      return 0;
+    }
+  }
+
+  Future<int> deleteVaultEntry(String id) async {
+    try {
+      final collection = await _getCollection(vaultEntriesCollectionName);
+      final result = await collection.deleteOne(where.id(ObjectId.fromHexString(id)));
+      return result.ok == 1 ? 1 : 0;
+    } catch (e) {
+      print('❌ Error deleting vault entry: $e');
       return 0;
     }
   }

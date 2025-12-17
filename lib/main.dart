@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'providers/expense_provider.dart';
 import 'providers/project_provider.dart';
+import 'providers/vault_provider.dart';
 import 'theme/app_theme.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/splash/splash_screen.dart';
@@ -46,6 +47,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ExpenseProvider()),
         ChangeNotifierProvider(create: (_) => ProjectProvider()),
+        ChangeNotifierProvider(create: (_) => VaultProvider()),
       ],
       child: MaterialApp(
         title: 'Ryse Two - Expense Tracker',

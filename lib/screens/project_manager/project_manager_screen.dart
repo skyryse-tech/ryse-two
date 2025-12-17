@@ -1,8 +1,13 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:math';
+import 'package:flutter/services.dart';
 import '../../providers/project_provider.dart';
 import '../../theme/project_manager_theme.dart';
+import '../../services/vault_security_service.dart';
+import '../vault/vault_screen.dart';
 import 'futuristic_page_route.dart';
 import 'project_list_screen.dart';
 import 'add_project_dialog.dart';
@@ -21,6 +26,8 @@ class _ProjectManagerScreenState extends State<ProjectManagerScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  int _satelliteTapCount = 0;
+  Timer? _satelliteTapResetTimer;
 
   @override
   void initState() {
@@ -49,6 +56,7 @@ class _ProjectManagerScreenState extends State<ProjectManagerScreen>
 
   @override
   void dispose() {
+    _satelliteTapResetTimer?.cancel();
     _animationController.dispose();
     super.dispose();
   }
@@ -88,25 +96,29 @@ class _ProjectManagerScreenState extends State<ProjectManagerScreen>
                                 children: [
                                   Row(
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              ProjectManagerTheme.cyanGlow.withOpacity(0.3),
-                                              ProjectManagerTheme.purpleNeon.withOpacity(0.3),
-                                            ],
+                                      GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: _handleSatelliteTap,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                ProjectManagerTheme.cyanGlow.withOpacity(0.3),
+                                                ProjectManagerTheme.purpleNeon.withOpacity(0.3),
+                                              ],
+                                            ),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: ProjectManagerTheme.cyanGlow.withOpacity(0.5),
+                                              width: 2,
+                                            ),
                                           ),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: ProjectManagerTheme.cyanGlow.withOpacity(0.5),
-                                            width: 2,
+                                          child: const Icon(
+                                            Icons.satellite_alt_rounded,
+                                            color: ProjectManagerTheme.cyanGlow,
+                                            size: 32,
                                           ),
-                                        ),
-                                        child: const Icon(
-                                          Icons.satellite_alt_rounded,
-                                          color: ProjectManagerTheme.cyanGlow,
-                                          size: 32,
                                         ),
                                       ),
                                       const SizedBox(width: 16),
@@ -260,6 +272,127 @@ class _ProjectManagerScreenState extends State<ProjectManagerScreen>
           ),
         ),
       ),
+    );
+  }
+
+  void _handleSatelliteTap() {
+    _satelliteTapCount++;
+    _satelliteTapResetTimer?.cancel();
+    _satelliteTapResetTimer = Timer(const Duration(seconds: 1), () {
+      _satelliteTapCount = 0;
+    });
+
+    if (_satelliteTapCount >= 3) {
+      _satelliteTapCount = 0;
+      _satelliteTapResetTimer?.cancel();
+      _promptVaultAccess();
+    }
+  }
+
+  Future<void> _promptVaultAccess() async {
+    if (!mounted) return;
+    final security = VaultSecurityService.instance;
+
+    if (security.isLocked) {
+      final remaining = security.lockRemaining;
+      final seconds = remaining?.inSeconds ?? 0;
+      final message = seconds > 0
+          ? 'Vault temporarily locked. Try again in ${seconds}s.'
+          : 'Vault temporarily locked.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+      return;
+    }
+
+    final pin = await _showPinPrompt();
+    if (pin == null || pin.isEmpty || !mounted) return;
+
+    try {
+      final success = await security.verifyPin(pin);
+      if (success) {
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          FuturisticPageRoute(builder: (context) => const VaultScreen()),
+        );
+      } else {
+        final attempts = security.remainingAttempts;
+        final locked = security.isLocked;
+        final message = locked
+            ? 'Vault locked after failed attempts.'
+            : 'Incorrect PIN. $attempts attempt(s) left.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Vault unavailable: $e')),
+      );
+    }
+  }
+
+  Future<String?> _showPinPrompt() async {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Center(
+          child: Container(
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.25),
+                  blurRadius: 28,
+                  spreadRadius: 2,
+                ),
+              ],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: AlertDialog(
+              elevation: 18,
+              backgroundColor: ProjectManagerTheme.deepSpace,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              title: const Text(
+                'Enter Command PIN',
+                style: TextStyle(color: ProjectManagerTheme.textPrimary),
+              ),
+              content: TextField(
+                controller: controller,
+                obscureText: true,
+                obscuringCharacter: '*',
+                maxLength: 4,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(4),
+                ],
+                onChanged: (value) {
+                  if (value.length == 4) {
+                    Navigator.of(context).pop(controller.text.trim());
+                  }
+                },
+                style: const TextStyle(color: Color(0xFF000000)),
+                decoration: const InputDecoration(
+                  counterText: '',
+                  hintText: '****',
+                  hintStyle: TextStyle(color: Color(0xFF666666)),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFF999999)),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFF000000)),
+                  ),
+                  filled: true,
+                  fillColor: Color(0xFFE0E0E0),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
